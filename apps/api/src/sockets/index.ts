@@ -1,10 +1,11 @@
 import { Server } from "socket.io";
 import type { Server as HttpServer } from "node:http";
+import { env } from "../config/env.js";
 
 export function createSocketServer(server: HttpServer): Server {
   const io = new Server(server, {
     cors: {
-      origin: ["http://localhost:5173"],
+      origin: [env.CORS_ORIGIN],
       credentials: true
     }
   });
@@ -15,4 +16,3 @@ export function createSocketServer(server: HttpServer): Server {
 
   return io;
 }
-
