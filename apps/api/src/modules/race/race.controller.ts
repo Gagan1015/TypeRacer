@@ -16,7 +16,7 @@ export function getRaceTextHandler(req: Request, res: Response): void {
     throw new HttpError(400, "VALIDATION_ERROR", "Invalid mode query");
   }
 
-  const text = getRaceText(parsed.data.mode);
+  const text = getRaceText(parsed.data.mode, parsed.data.durationMs);
   res.status(200).json(ok({ text }));
 }
 
@@ -47,4 +47,3 @@ export async function getUserStatsHandler(req: Request, res: Response): Promise<
   const stats = await getUserRaceStats(userId);
   res.status(200).json(ok({ stats }));
 }
-

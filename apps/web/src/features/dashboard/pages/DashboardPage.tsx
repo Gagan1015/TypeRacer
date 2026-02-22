@@ -1,17 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { computeTypingScore, timedModeDurationMs, type RaceMode } from "@typeracrer/shared";
+import { computeTypingScore, isPresetTimedRaceMode, timedModeDurationMs, type RaceMode } from "@typeracrer/shared";
 import { createTypingAttempt, getMyRaceStats, getMyTypingAttempts, getRaceText } from "@/lib/api/client";
+import { clampRaceDurationMs, parseDurationToMs } from "@/lib/utils/duration";
+import { buildPromptWindow } from "@/lib/utils/prompt-window";
 
-const modeOptions: Array<{ value: RaceMode; label: string }> = [
+const timedOptions: Array<{ value: Extract<RaceMode, "timed_15" | "timed_30" | "timed_60" | "timed_120">; label: string }> = [
+  { value: "timed_15", label: "15" },
   { value: "timed_30", label: "30" },
   { value: "timed_60", label: "60" },
-  { value: "fixed", label: "fixed" }
+  { value: "timed_120", label: "120" }
 ];
 
+const pbModeOptions: RaceMode[] = ["timed_15", "timed_30", "timed_60", "timed_120", "timed_custom"];
+
 const modeLabels: Record<RaceMode, string> = {
+  timed_15: "15s",
   timed_30: "30s",
   timed_60: "60s",
+  timed_120: "120s",
+  timed_custom: "custom",
   fixed: "fixed"
 };
 
@@ -39,6 +47,10 @@ export function DashboardPage() {
   const finishingRef = useRef(false);
 
   const [mode, setMode] = useState<RaceMode>("timed_30");
+  const [customDurationMs, setCustomDurationMs] = useState(45_000);
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+  const [customDurationInput, setCustomDurationInput] = useState("45");
+  const [customDurationError, setCustomDurationError] = useState("");
   const [textVersion, setTextVersion] = useState(0);
   const [status, setStatus] = useState<RaceStatus>("idle");
   const [typed, setTyped] = useState("");
@@ -46,9 +58,19 @@ export function DashboardPage() {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [lastSummary, setLastSummary] = useState("");
 
+  const selectedDurationMs = useMemo(() => {
+    if (isPresetTimedRaceMode(mode)) {
+      return timedModeDurationMs[mode];
+    }
+    if (mode === "timed_custom") {
+      return customDurationMs;
+    }
+    return null;
+  }, [customDurationMs, mode]);
+
   const textQuery = useQuery({
-    queryKey: ["race", "text", mode, textVersion],
-    queryFn: () => getRaceText(mode),
+    queryKey: ["race", "text", mode, selectedDurationMs, textVersion],
+    queryFn: () => getRaceText(mode, selectedDurationMs ?? undefined),
     staleTime: 0
   });
 
@@ -70,22 +92,9 @@ export function DashboardPage() {
     }
   });
 
-  const isTimedMode = mode === "timed_30" || mode === "timed_60";
-  const timedLimitMs = isTimedMode ? timedModeDurationMs[mode] : null;
+  const isTimedMode = selectedDurationMs !== null;
+  const timedLimitMs = selectedDurationMs;
   const prompt = textQuery.data?.content ?? "";
-
-  const beginRace = useCallback(() => {
-    if (!prompt || textQuery.isLoading) {
-      return;
-    }
-
-    finishingRef.current = false;
-    setStatus("running");
-    setStartedAt(Date.now());
-    setElapsedMs(0);
-    setLastSummary("");
-    requestAnimationFrame(() => inputRef.current?.focus());
-  }, [prompt, textQuery.isLoading]);
 
   const resetRound = useCallback(() => {
     finishingRef.current = false;
@@ -118,7 +127,8 @@ export function DashboardPage() {
           mode,
           textId: textQuery.data.id,
           typed,
-          durationMs
+          durationMs,
+          targetDurationMs: timedLimitMs ?? undefined
         },
         {
           onSuccess: (attempt) => {
@@ -130,7 +140,7 @@ export function DashboardPage() {
         }
       );
     },
-    [mode, startedAt, status, submitAttemptMutation, textQuery.data, typed]
+    [mode, startedAt, status, submitAttemptMutation, textQuery.data, timedLimitMs, typed]
   );
 
   useEffect(() => {
@@ -141,7 +151,7 @@ export function DashboardPage() {
   }, [prompt, status]);
 
   useEffect(() => {
-    if (status !== "running" || !startedAt) {
+    if (status !== "running" || !startedAt || !timedLimitMs) {
       return;
     }
 
@@ -149,23 +159,24 @@ export function DashboardPage() {
       const nextElapsed = Date.now() - startedAt;
       setElapsedMs(nextElapsed);
 
-      if (isTimedMode && timedLimitMs && nextElapsed >= timedLimitMs) {
+      if (nextElapsed >= timedLimitMs) {
         finishRace(timedLimitMs);
       }
     }, 80);
 
     return () => window.clearInterval(interval);
-  }, [finishRace, isTimedMode, startedAt, status, timedLimitMs]);
+  }, [finishRace, startedAt, status, timedLimitMs]);
 
   useEffect(() => {
-    if (!textQuery.data || mode !== "fixed" || status !== "running" || finishingRef.current) {
+    if (!textQuery.data || status !== "running" || finishingRef.current) {
       return;
     }
 
     if (typed.length >= textQuery.data.content.length) {
-      finishRace();
+      const autoDuration = Math.max(Date.now() - (startedAt ?? Date.now()), 1);
+      finishRace(autoDuration);
     }
-  }, [finishRace, mode, status, textQuery.data, typed.length]);
+  }, [finishRace, startedAt, status, textQuery.data, typed.length]);
 
   const previewScore = useMemo(() => {
     if (!prompt) {
@@ -173,7 +184,7 @@ export function DashboardPage() {
     }
 
     const activeDurationMs = Math.max(
-      isTimedMode && timedLimitMs ? Math.min(elapsedMs, timedLimitMs) : elapsedMs,
+      timedLimitMs ? Math.min(elapsedMs, timedLimitMs) : elapsedMs,
       1
     );
 
@@ -182,11 +193,40 @@ export function DashboardPage() {
       typed,
       durationMs: activeDurationMs
     });
-  }, [elapsedMs, isTimedMode, prompt, timedLimitMs, typed]);
+  }, [elapsedMs, prompt, timedLimitMs, typed]);
 
-  const remainingMs = isTimedMode && timedLimitMs ? Math.max(timedLimitMs - elapsedMs, 0) : 0;
-
+  const remainingMs = timedLimitMs ? Math.max(timedLimitMs - elapsedMs, 0) : 0;
   const showResults = status === "finished" && previewScore;
+
+  const promptWindow = useMemo(() => buildPromptWindow(prompt, typed.length, 52, 3), [prompt, typed.length]);
+
+  function selectMode(nextMode: RaceMode): void {
+    if (status === "running") {
+      return;
+    }
+    setMode(nextMode);
+    setTextVersion((value) => value + 1);
+    resetRound();
+  }
+
+  function applyCustomDuration(): void {
+    const parsedDurationMs = parseDurationToMs(customDurationInput);
+    if (!parsedDurationMs) {
+      setCustomDurationError("enter a valid duration (for example 45, 90s, 2m, 1m30s)");
+      return;
+    }
+
+    const nextDuration = clampRaceDurationMs(parsedDurationMs);
+    setCustomDurationMs(nextDuration);
+    setCustomDurationError("");
+    setIsCustomModalOpen(false);
+
+    if (status !== "running") {
+      setMode("timed_custom");
+      setTextVersion((value) => value + 1);
+      resetRound();
+    }
+  }
 
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col items-center">
@@ -197,25 +237,45 @@ export function DashboardPage() {
         </span>
         <span className="mr-2 text-sm text-[#646669]">time</span>
         <span className="mx-1 h-4 w-px bg-[#3a3d42]" />
-        {modeOptions.map((option) => (
+        {timedOptions.map((option) => (
           <button
             key={option.value}
-            onClick={() => {
-              if (status === "running") return;
-              setMode(option.value);
-              setTextVersion((v) => v + 1);
-              resetRound();
-            }}
+            onClick={() => selectMode(option.value)}
             className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-              mode === option.value
-                ? "text-[#e2b714]"
-                : "text-[#646669] hover:text-[#d1d0c5]"
+              mode === option.value ? "text-[#e2b714]" : "text-[#646669] hover:text-[#d1d0c5]"
             }`}
           >
             {option.label}
           </button>
         ))}
         <span className="mx-1 h-4 w-px bg-[#3a3d42]" />
+        {/* Custom duration button */}
+        <button
+          onClick={() => {
+            if (status === "running") return;
+            setCustomDurationInput(String(Math.round(customDurationMs / 1000)));
+            setCustomDurationError("");
+            setIsCustomModalOpen(true);
+          }}
+          className={`rounded-md px-2 py-1 text-sm font-medium transition-colors ${
+            mode === "timed_custom" ? "text-[#e2b714]" : "text-[#646669] hover:text-[#d1d0c5]"
+          }`}
+          title="custom duration"
+        >
+          {mode === "timed_custom" ? `${Math.round(customDurationMs / 1000)}s` : "custom"}
+        </button>
+        <span className="mx-1 h-4 w-px bg-[#3a3d42]" />
+        {/* Fixed mode */}
+        <button
+          onClick={() => selectMode("fixed")}
+          className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+            mode === "fixed" ? "text-[#e2b714]" : "text-[#646669] hover:text-[#d1d0c5]"
+          }`}
+        >
+          fixed
+        </button>
+        <span className="mx-1 h-4 w-px bg-[#3a3d42]" />
+        {/* Refresh button */}
         <button
           onClick={() => {
             setTextVersion((v) => v + 1);
@@ -241,7 +301,7 @@ export function DashboardPage() {
         </span>
         <span className="flex items-center gap-1.5 text-[#646669]">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          {modeLabels[mode]}
+          {mode === "timed_custom" ? `${Math.round(customDurationMs / 1000)}s` : modeLabels[mode]}
         </span>
       </div>
 
@@ -249,38 +309,42 @@ export function DashboardPage() {
       <div
         className="relative mt-10 w-full cursor-text px-2"
         onClick={() => inputRef.current?.focus()}
-        style={{ minHeight: "180px" }}
+        style={{ minHeight: "220px" }}
       >
         {textQuery.isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <div className="typing-loader">
-              <span className="inline-block h-2 w-2 rounded-full bg-[#646669] animate-pulse" />
-            </div>
+            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[#646669]" />
           </div>
         ) : null}
         {textQuery.isError ? (
           <p className="text-center font-mono text-xl text-red-400/80">could not load text</p>
         ) : null}
+
         {!textQuery.isLoading && !textQuery.isError ? (
-          <p className="font-mono text-[clamp(1.4rem,2.4vw,2rem)] leading-[1.85] tracking-wide text-[#646669]">
-            {prompt.split("").map((char, index) => {
-              const typedChar = typed[index];
-              const isCurrent = status !== "finished" && index === typed.length;
+          <div className="space-y-2 font-mono text-[clamp(1.4rem,2.4vw,2rem)] leading-[1.85] tracking-wide">
+            {promptWindow.visibleLines.map((line, lineIndex) => (
+              <p key={`${line.start}-${line.end}-${lineIndex}`} className="text-[#646669]">
+                {line.text.split("").map((char, index) => {
+                  const globalIndex = line.start + index;
+                  const typedChar = typed[globalIndex];
+                  const isCurrent = status !== "finished" && globalIndex === typed.length;
 
-              let className = "text-[#646669] transition-colors duration-75";
-              if (typedChar !== undefined) {
-                className = typedChar === char ? "text-[#d1d0c5]" : "text-[#ca4754] bg-[#ca4754]/10";
-              } else if (isCurrent) {
-                className = "border-l-2 border-[#e2b714] pl-[1px] text-[#646669] animate-caret-blink";
-              }
+                  let className = "text-[#646669] transition-colors duration-75";
+                  if (typedChar !== undefined) {
+                    className = typedChar === char ? "text-[#d1d0c5]" : "text-[#ca4754] bg-[#ca4754]/10";
+                  } else if (isCurrent) {
+                    className = "border-l-2 border-[#e2b714] pl-[1px] text-[#646669] animate-caret-blink";
+                  }
 
-              return (
-                <span key={`${index}-${char}`} className={className}>
-                  {char}
-                </span>
-              );
-            })}
-          </p>
+                  return (
+                    <span key={`${globalIndex}-${char}`} className={className}>
+                      {char}
+                    </span>
+                  );
+                })}
+              </p>
+            ))}
+          </div>
         ) : null}
 
         <textarea
@@ -398,7 +462,7 @@ export function DashboardPage() {
                   }`}
                 >
                   <div className="flex items-center gap-4">
-                    <span className="w-10 font-mono text-xs text-[#e2b714]">{modeLabels[attempt.mode]}</span>
+                    <span className="w-12 font-mono text-xs text-[#e2b714]">{modeLabels[attempt.mode]}</span>
                     <span className="font-mono text-[#d1d0c5]">{attempt.score.wpm} wpm</span>
                     <span className="font-mono text-[#646669]">{attempt.score.accuracy}%</span>
                   </div>
@@ -430,15 +494,56 @@ export function DashboardPage() {
               </div>
               <div className="mt-3">
                 <p className="mb-2 text-xs uppercase tracking-widest text-[#4a4d52]">mode pbs</p>
-                {modeOptions.map((option) => (
-                  <div key={option.value} className="flex items-center justify-between py-1">
-                    <span className="text-[#646669]">{modeLabels[option.value]}</span>
+                {pbModeOptions.map((pbMode) => (
+                  <div key={pbMode} className="flex items-center justify-between py-1">
+                    <span className="text-[#646669]">{modeLabels[pbMode]}</span>
                     <span className="font-mono text-[#d1d0c5]">
-                      {statsQuery.data?.personalBestByMode[option.value] ?? 0}
+                      {statsQuery.data?.personalBestByMode[pbMode] ?? 0}
                     </span>
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── Custom duration modal ── */}
+      {isCustomModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" onClick={() => setIsCustomModalOpen(false)}>
+          <div className="w-full max-w-sm rounded-xl bg-[#2c2e33] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-medium text-[#d1d0c5]">custom duration</h3>
+            <p className="mt-1 text-xs text-[#646669]">seconds, minutes, or mixed (e.g. 45, 90s, 2m, 1m30s)</p>
+
+            <input
+              value={customDurationInput}
+              onChange={(event) => setCustomDurationInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") applyCustomDuration();
+                if (event.key === "Escape") setIsCustomModalOpen(false);
+              }}
+              className="mt-4 w-full rounded-lg bg-[#1e2228] px-4 py-2.5 font-mono text-lg text-[#d1d0c5] outline-none placeholder:text-[#4a4d52] focus:ring-1 focus:ring-[#e2b714]/40"
+              placeholder="45"
+              autoFocus
+            />
+
+            {customDurationError ? (
+              <p className="mt-2 text-xs text-[#ca4754]">{customDurationError}</p>
+            ) : null}
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={applyCustomDuration}
+                className="flex-1 rounded-lg bg-[#e2b714]/15 px-4 py-2 text-sm font-medium text-[#e2b714] transition-colors hover:bg-[#e2b714]/25"
+              >
+                apply
+              </button>
+              <button
+                onClick={() => setIsCustomModalOpen(false)}
+                className="rounded-lg px-4 py-2 text-sm text-[#646669] transition-colors hover:text-[#d1d0c5]"
+              >
+                cancel
+              </button>
             </div>
           </div>
         </div>

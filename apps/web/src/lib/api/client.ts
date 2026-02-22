@@ -97,8 +97,11 @@ export async function updateMyProfile(input: ProfileUpdateInput): Promise<Profil
   return data.profile;
 }
 
-export async function getRaceText(mode: RaceMode): Promise<RaceText> {
+export async function getRaceText(mode: RaceMode, durationMs?: number): Promise<RaceText> {
   const params = new URLSearchParams({ mode });
+  if (durationMs && Number.isFinite(durationMs)) {
+    params.set("durationMs", String(Math.round(durationMs)));
+  }
   const data = await request<{ text: RaceText }>(`/api/race/text?${params.toString()}`);
   return data.text;
 }

@@ -20,7 +20,7 @@ const typingAttemptSchema = new mongoose.Schema(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     mode: {
       type: String,
-      enum: ["timed_30", "timed_60", "fixed"],
+      enum: ["timed_15", "timed_30", "timed_60", "timed_120", "timed_custom", "fixed"],
       required: true,
       index: true
     },
@@ -41,4 +41,3 @@ export type TypingAttemptDocument = InferSchemaType<typeof typingAttemptSchema> 
 export const TypingAttemptModel: Model<TypingAttemptDocument> =
   (mongoose.models.TypingAttempt as Model<TypingAttemptDocument>) ||
   mongoose.model<TypingAttemptDocument>("TypingAttempt", typingAttemptSchema);
-

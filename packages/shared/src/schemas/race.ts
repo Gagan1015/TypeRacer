@@ -4,14 +4,16 @@ import { raceModes } from "../constants/race.js";
 export const raceModeSchema = z.enum(raceModes);
 
 export const raceTextQuerySchema = z.object({
-  mode: raceModeSchema
+  mode: raceModeSchema,
+  durationMs: z.coerce.number().int().positive().max(600_000).optional()
 });
 
 export const createTypingAttemptSchema = z.object({
   mode: raceModeSchema,
   textId: z.string().trim().min(2).max(80),
-  typed: z.string().max(1200),
-  durationMs: z.coerce.number().int().positive().max(300_000)
+  typed: z.string().max(5000),
+  durationMs: z.coerce.number().int().positive().max(300_000),
+  targetDurationMs: z.coerce.number().int().positive().max(600_000).optional()
 });
 
 export const attemptsQuerySchema = z.object({
@@ -21,4 +23,3 @@ export const attemptsQuerySchema = z.object({
 export type RaceModeInput = z.infer<typeof raceModeSchema>;
 export type CreateTypingAttemptInput = z.infer<typeof createTypingAttemptSchema>;
 export type AttemptsQueryInput = z.infer<typeof attemptsQuerySchema>;
-

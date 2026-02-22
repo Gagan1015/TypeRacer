@@ -4,6 +4,7 @@ import { useAuthStore } from "@/lib/state/auth-store";
 
 const links = [
   { to: "/dashboard", label: "Dashboard" },
+  { to: "/multiplayer", label: "Multiplayer" },
   { to: "/profile", label: "Profile" }
 ];
 

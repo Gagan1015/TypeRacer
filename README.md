@@ -45,7 +45,12 @@ pnpm dev
     - 30s mode, 60s mode, fixed passage mode
     - Live WPM/raw WPM/accuracy/progress stats
     - Persisted attempt history and personal best cards
+  - Multiplayer realtime MVP:
+    - Socket-authenticated rooms with `create/join/leave/ready`
+    - Countdown start flow and authoritative race lifecycle
+    - Live progress and server-finalized multiplayer results persisted as attempts
+    - New web route: `/multiplayer`
 - Next:
-  - Add API integration tests for race/auth/profile flows
-  - Add frontend unit tests for route guards + typing engine state transitions
-  - Start multiplayer room lifecycle (Phase 3)
+  - Add API integration tests for race/auth/profile + multiplayer socket lifecycle
+  - Add frontend unit tests for multiplayer room state transitions
+  - Add reconnect/resume behavior and anti-cheat validation for multiplayer
