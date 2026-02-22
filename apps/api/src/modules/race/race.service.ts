@@ -10,16 +10,22 @@ import {
   type RaceText,
   type TypingAttempt
 } from "@typeracrer/shared";
+import { RaceTextModel } from "../../db/models/race-text.model.js";
 import { TypingAttemptModel } from "../../db/models/typing-attempt.model.js";
+import { enqueueUserLeaderboardRecompute } from "../../jobs/leaderboard-recompute.queue.js";
 import { HttpError } from "../../utils/http-error.js";
+import { evaluateTypingAttemptAntiCheat } from "../anti-cheat/anti-cheat.service.js";
+import { createSystemReportForSuspiciousAttempt } from "../admin/admin.service.js";
 
 const GENERATED_TEXT_TTL_MS = 2 * 60 * 60 * 1000;
 const MAX_GENERATED_TEXTS = 500;
 const TIMED_PROMPT_CHARS_PER_MS = 1 / 46;
+const ADMIN_TEXT_CACHE_TTL_MS = 30_000;
 
 type CachedRaceText = RaceText & { createdAtMs: number };
 
 const generatedTexts = new Map<string, CachedRaceText>();
+let cachedAdminTexts: { loadedAtMs: number; texts: RaceText[] } | null = null;
 
 function toTypingAttempt(document: {
   _id: mongoose.Types.ObjectId;
@@ -41,9 +47,9 @@ function toTypingAttempt(document: {
   };
 }
 
-function pickRandomText(): RaceText {
-  const index = Math.floor(Math.random() * raceTexts.length);
-  const selected = raceTexts[index];
+function pickRandomText(textPool: readonly RaceText[]): RaceText {
+  const index = Math.floor(Math.random() * textPool.length);
+  const selected = textPool[index];
   if (!selected) {
     throw new HttpError(500, "NO_TEXTS_CONFIGURED", "No race texts configured");
   }
@@ -79,8 +85,8 @@ function cacheGeneratedText(text: RaceText): RaceText {
   return text;
 }
 
-function buildTimedPrompt(targetChars: number): string {
-  if (raceTexts.length === 0) {
+function buildTimedPrompt(textPool: readonly RaceText[], targetChars: number): string {
+  if (textPool.length === 0) {
     throw new HttpError(500, "NO_TEXTS_CONFIGURED", "No race texts configured");
   }
 
@@ -89,13 +95,13 @@ function buildTimedPrompt(targetChars: number): string {
   let totalChars = 0;
 
   while (totalChars < targetChars) {
-    let index = Math.floor(Math.random() * raceTexts.length);
+    let index = Math.floor(Math.random() * textPool.length);
 
-    if (raceTexts.length > 1 && index === lastIndex) {
-      index = (index + 1) % raceTexts.length;
+    if (textPool.length > 1 && index === lastIndex) {
+      index = (index + 1) % textPool.length;
     }
 
-    const segment = raceTexts[index];
+    const segment = textPool[index];
     if (!segment) {
       continue;
     }
@@ -116,8 +122,8 @@ function targetCharsForDuration(durationMs: number): number {
   return Math.max(260, Math.min(Math.round(durationMs * TIMED_PROMPT_CHARS_PER_MS), 4_500));
 }
 
-function createTimedRaceText(mode: RaceMode, durationMs: number): RaceText {
-  const content = buildTimedPrompt(targetCharsForDuration(durationMs));
+function createTimedRaceText(textPool: readonly RaceText[], mode: RaceMode, durationMs: number): RaceText {
+  const content = buildTimedPrompt(textPool, targetCharsForDuration(durationMs));
   const uniqueId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 
   return cacheGeneratedText({
@@ -127,7 +133,56 @@ function createTimedRaceText(mode: RaceMode, durationMs: number): RaceText {
   });
 }
 
-function getRaceTextById(textId: string): RaceText | undefined {
+function isValidObjectIdString(value: string): boolean {
+  return mongoose.isValidObjectId(value);
+}
+
+function mapStoredTextToRaceText(text: {
+  _id: mongoose.Types.ObjectId;
+  content: string;
+  language: string;
+}): RaceText {
+  return {
+    id: `db-${text._id.toString()}`,
+    content: text.content,
+    language: text.language
+  };
+}
+
+async function getActiveAdminRaceTexts(): Promise<RaceText[]> {
+  if (cachedAdminTexts && Date.now() - cachedAdminTexts.loadedAtMs <= ADMIN_TEXT_CACHE_TTL_MS) {
+    return cachedAdminTexts.texts;
+  }
+
+  const texts = await RaceTextModel.find({ isActive: true }).select({ content: 1, language: 1 }).lean();
+  const mapped = texts.map(mapStoredTextToRaceText);
+  cachedAdminTexts = {
+    loadedAtMs: Date.now(),
+    texts: mapped
+  };
+  return mapped;
+}
+
+async function getAllBaseRaceTexts(): Promise<RaceText[]> {
+  const adminTexts = await getActiveAdminRaceTexts();
+  return [...raceTexts, ...adminTexts];
+}
+
+async function getRaceTextById(textId: string): Promise<RaceText | undefined> {
+  if (textId.startsWith("db-")) {
+    const objectId = textId.slice("db-".length);
+    if (!isValidObjectIdString(objectId)) {
+      return undefined;
+    }
+    const text = await RaceTextModel.findOne({ _id: new mongoose.Types.ObjectId(objectId) })
+      .select({ content: 1, language: 1 })
+      .lean();
+    if (!text) {
+      return undefined;
+    }
+    return mapStoredTextToRaceText(text);
+  }
+
   const baseText = raceTexts.find((text) => text.id === textId);
   if (baseText) {
     return baseText;
@@ -165,17 +220,18 @@ function getModeDurationCapMs(mode: RaceMode, targetDurationMs?: number): number
   return null;
 }
 
-export function getRaceText(mode: RaceMode, durationMs?: number): RaceText {
+export async function getRaceText(mode: RaceMode, durationMs?: number): Promise<RaceText> {
   if (mode === "timed_custom" && !durationMs) {
     throw new HttpError(400, "MISSING_DURATION", "Custom timed mode requires durationMs");
   }
 
+  const baseTexts = await getAllBaseRaceTexts();
   const timedCapMs = getModeDurationCapMs(mode, durationMs);
   if (timedCapMs !== null) {
-    return createTimedRaceText(mode, timedCapMs);
+    return createTimedRaceText(baseTexts, mode, timedCapMs);
   }
 
-  return pickRandomText();
+  return pickRandomText(baseTexts);
 }
 
 export async function createTypingAttempt(userId: string, input: CreateTypingAttemptInput): Promise<TypingAttempt> {
@@ -183,7 +239,7 @@ export async function createTypingAttempt(userId: string, input: CreateTypingAtt
     throw new HttpError(400, "MISSING_DURATION", "Custom timed mode requires targetDurationMs");
   }
 
-  const selectedText = getRaceTextById(input.textId);
+  const selectedText = await getRaceTextById(input.textId);
   if (!selectedText) {
     throw new HttpError(400, "UNKNOWN_TEXT", "Provided text is invalid");
   }
@@ -196,6 +252,13 @@ export async function createTypingAttempt(userId: string, input: CreateTypingAtt
     typed: input.typed,
     durationMs: boundedDurationMs
   });
+  const antiCheat = await evaluateTypingAttemptAntiCheat({
+    userId,
+    mode: input.mode,
+    promptLength: selectedText.content.length,
+    typedLength: input.typed.length,
+    score
+  });
 
   const created = await TypingAttemptModel.create({
     userId,
@@ -203,8 +266,29 @@ export async function createTypingAttempt(userId: string, input: CreateTypingAtt
     textId: selectedText.id,
     prompt: selectedText.content,
     typed: input.typed,
-    score
+    score,
+    antiCheat: {
+      flagged: antiCheat.flagged,
+      reviewStatus: antiCheat.flagged ? "pending" : "cleared",
+      reasons: antiCheat.reasons
+    }
   });
+
+  if (antiCheat.flagged) {
+    try {
+      await createSystemReportForSuspiciousAttempt({
+        attemptId: created._id.toString(),
+        suspectUserId: userId,
+        reasons: antiCheat.reasons,
+        mode: input.mode,
+        wpm: score.wpm,
+        accuracy: score.accuracy
+      });
+    } catch (error) {
+      console.error("[race] failed to create anti-cheat report", error);
+    }
+  }
+  enqueueUserLeaderboardRecompute(userId);
 
   return toTypingAttempt({
     _id: created._id,
@@ -215,6 +299,10 @@ export async function createTypingAttempt(userId: string, input: CreateTypingAtt
     score: created.score,
     createdAt: created.createdAt
   });
+}
+
+export function invalidateRaceTextCache(): void {
+  cachedAdminTexts = null;
 }
 
 export async function getUserAttempts(userId: string, limit: number): Promise<TypingAttempt[]> {

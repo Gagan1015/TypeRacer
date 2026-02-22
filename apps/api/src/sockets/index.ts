@@ -21,6 +21,7 @@ import { env } from "../config/env.js";
 import { verifyAccessToken } from "../utils/jwt.js";
 import { UserModel } from "../db/models/user.model.js";
 import { getRaceText, createTypingAttempt } from "../modules/race/race.service.js";
+import { applyRankedMatchResult } from "../modules/ranked/ranked.service.js";
 
 const MIN_PLAYERS_TO_START = 2;
 const MAX_PLAYERS_PER_ROOM = 20;
@@ -53,6 +54,7 @@ type RoomRuntime = {
   hostUserId: string;
   mode: RaceMode;
   raceDurationMs: number | null;
+  ranked: boolean;
   status: MultiplayerRoomState["status"];
   countdownSecondsLeft: number | null;
   text: RaceText | null;
@@ -147,6 +149,7 @@ function toRoomState(room: RoomRuntime): MultiplayerRoomState {
     hostUserId: room.hostUserId,
     mode: room.mode,
     raceDurationMs: room.raceDurationMs,
+    ranked: room.ranked,
     status: room.status,
     countdownSecondsLeft: room.countdownSecondsLeft,
     textId: room.text?.id ?? null,
@@ -184,7 +187,7 @@ function resolveRoomDurationMs(mode: RaceMode, customDurationMs?: number): numbe
   return null;
 }
 
-function createRoom(mode: RaceMode, host: SocketIdentity, raceDurationMs: number | null): RoomRuntime {
+function createRoom(mode: RaceMode, host: SocketIdentity, raceDurationMs: number | null, ranked: boolean): RoomRuntime {
   let nextId = generateRoomId();
   while (rooms.has(nextId)) {
     nextId = generateRoomId();
@@ -196,6 +199,7 @@ function createRoom(mode: RaceMode, host: SocketIdentity, raceDurationMs: number
     hostUserId: host.userId,
     mode,
     raceDurationMs,
+    ranked,
     status: "waiting",
     countdownSecondsLeft: null,
     text: null,
@@ -376,7 +380,17 @@ function startCountdown(io: Server, room: RoomRuntime): void {
 
     if (next <= 0) {
       clearCountdownTimer(room);
-      void startRace(io, room);
+      void startRace(io, room).catch((error) => {
+        console.error("[socket] startRace failed", error);
+        room.status = "waiting";
+        room.countdownSecondsLeft = null;
+        touchRoom(room);
+        emitRoomState(io, room);
+        io.to(room.id).emit("race:error", {
+          code: "START_FAILED",
+          message: "Race could not be started"
+        });
+      });
       return;
     }
 
@@ -504,12 +518,35 @@ async function finalizeRoom(io: Server, room: RoomRuntime): Promise<void> {
     });
   }
 
+  let rankedUpdate: Awaited<ReturnType<typeof applyRankedMatchResult>> = null;
+
+  if (room.ranked && room.mode !== "timed_custom") {
+    const rankedParticipants = [...room.players.values()]
+      .filter((entry) => entry.finalScore !== null && entry.place !== null)
+      .map((entry) => ({
+        userId: entry.userId,
+        username: entry.username,
+        place: entry.place as number
+      }));
+
+    try {
+      rankedUpdate = await applyRankedMatchResult({
+        roomId: room.id,
+        mode: room.mode,
+        playedAtMs: Date.now(),
+        participants: rankedParticipants
+      });
+    } catch (error) {
+      console.error("[socket] failed to apply ranked result", error);
+    }
+  }
+
   touchRoom(room);
   const roomState = toRoomState(room);
   const results = buildResults(room);
 
   io.to(room.id).emit("race:room_state", { room: roomState });
-  io.to(room.id).emit("race:finished", { room: roomState, results });
+  io.to(room.id).emit("race:finished", { room: roomState, results, rankedUpdate });
 }
 
 async function startRace(io: Server, room: RoomRuntime): Promise<void> {
@@ -521,7 +558,7 @@ async function startRace(io: Server, room: RoomRuntime): Promise<void> {
     return;
   }
 
-  const text = getRaceText(room.mode, room.raceDurationMs ?? undefined);
+  const text = await getRaceText(room.mode, room.raceDurationMs ?? undefined);
 
   room.status = "racing";
   room.text = text;
@@ -574,9 +611,13 @@ export function createSocketServer(server: HttpServer): Server {
       }
 
       const payload = verifyAccessToken(token);
-      const user = await UserModel.findById(payload.sub).select({ username: 1 }).lean();
+      const user = await UserModel.findById(payload.sub).select({ username: 1, isBanned: 1 }).lean();
       if (!user) {
         next(new Error("UNAUTHORIZED"));
+        return;
+      }
+      if (user.isBanned) {
+        next(new Error("FORBIDDEN"));
         return;
       }
 
@@ -607,10 +648,14 @@ export function createSocketServer(server: HttpServer): Server {
         emitSocketError(socket, "VALIDATION_ERROR", "Custom duration is required");
         return;
       }
+      if (parsed.data.ranked && (parsed.data.mode === "fixed" || parsed.data.mode === "timed_custom")) {
+        emitSocketError(socket, "VALIDATION_ERROR", "Ranked mode requires a preset timed race mode");
+        return;
+      }
 
       detachSocketFromRoom(io, socket);
 
-      const room = createRoom(parsed.data.mode, identity, raceDurationMs);
+      const room = createRoom(parsed.data.mode, identity, raceDurationMs, parsed.data.ranked);
       rooms.set(room.id, room);
       attachPlayerToRoom(room, identity, socket.id);
       touchRoom(room);

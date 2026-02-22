@@ -19,6 +19,7 @@ export type MultiplayerRoomState = {
   hostUserId: string;
   mode: RaceMode;
   raceDurationMs: number | null;
+  ranked?: boolean;
   status: MultiplayerRoomStatus;
   countdownSecondsLeft: number | null;
   textId: string | null;

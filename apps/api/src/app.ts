@@ -10,6 +10,8 @@ import { profileRouter } from "./modules/profile/profile.routes.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 import { raceRouter } from "./modules/race/race.routes.js";
+import { leaderboardRouter } from "./modules/leaderboard/leaderboard.routes.js";
+import { rankedRouter } from "./modules/ranked/ranked.routes.js";
 import { errorHandler, notFoundHandler } from "./middleware/error.middleware.js";
 
 export function createApp(): Express {
@@ -46,6 +48,8 @@ export function createApp(): Express {
   app.use("/api/profile", profileRouter);
   app.use("/api/admin", adminRouter);
   app.use("/api/race", raceRouter);
+  app.use("/api/leaderboard", leaderboardRouter);
+  app.use("/api/ranked", rankedRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

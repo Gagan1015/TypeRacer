@@ -19,6 +19,9 @@ const userSchema = new mongoose.Schema(
       default: "user",
       required: true
     },
+    isBanned: { type: Boolean, default: false, required: true, index: true },
+    banReason: { type: String, default: null },
+    bannedAt: { type: Date, default: null },
     sessions: { type: [sessionSchema], default: [] }
   },
   { timestamps: true }
@@ -27,4 +30,3 @@ const userSchema = new mongoose.Schema(
 export type UserDocument = InferSchemaType<typeof userSchema> & { _id: mongoose.Types.ObjectId };
 export const UserModel: Model<UserDocument> =
   (mongoose.models.User as Model<UserDocument>) || mongoose.model<UserDocument>("User", userSchema);
-

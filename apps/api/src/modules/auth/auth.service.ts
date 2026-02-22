@@ -112,6 +112,9 @@ export async function login(input: LoginInput): Promise<{ user: AuthUser; tokens
   if (!user) {
     throw new HttpError(401, "INVALID_CREDENTIALS", "Invalid email or password");
   }
+  if (user.isBanned) {
+    throw new HttpError(403, "ACCOUNT_BANNED", "Account is banned");
+  }
 
   const passwordOk = await argon2.verify(user.passwordHash, input.password);
   if (!passwordOk) {
@@ -133,6 +136,11 @@ export async function refresh(refreshToken: string): Promise<{ user: AuthUser; t
   const user = await UserModel.findById(payload.sub);
   if (!user) {
     throw new HttpError(401, "INVALID_REFRESH_TOKEN", "Session no longer exists");
+  }
+  if (user.isBanned) {
+    user.set("sessions", []);
+    await user.save();
+    throw new HttpError(403, "ACCOUNT_BANNED", "Account is banned");
   }
 
   const hasSession = user.sessions.some((session) => session.sid === payload.sid);

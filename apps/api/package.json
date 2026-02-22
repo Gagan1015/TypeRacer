@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "lint": "echo api lint pending",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "echo api tests pending"
+    "test": "tsx --test src/**/*.test.ts",
+    "promote-admin": "tsx src/scripts/promote-admin.ts"
   },
   "dependencies": {
     "@typeracrer/shared": "workspace:*",

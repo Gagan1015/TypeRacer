@@ -10,13 +10,13 @@ function requireUserId(req: Request): string {
   return req.user.userId;
 }
 
-export function getRaceTextHandler(req: Request, res: Response): void {
+export async function getRaceTextHandler(req: Request, res: Response): Promise<void> {
   const parsed = raceTextQuerySchema.safeParse(req.query);
   if (!parsed.success) {
     throw new HttpError(400, "VALIDATION_ERROR", "Invalid mode query");
   }
 
-  const text = getRaceText(parsed.data.mode, parsed.data.durationMs);
+  const text = await getRaceText(parsed.data.mode, parsed.data.durationMs);
   res.status(200).json(ok({ text }));
 }
 

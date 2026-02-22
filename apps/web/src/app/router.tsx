@@ -4,6 +4,8 @@ import { AppShell } from "./layout/AppShell";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { SignupPage } from "@/features/auth/pages/SignupPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
+import { AdminPage } from "@/features/admin/pages/AdminPage";
+import { LeaderboardPage } from "@/features/leaderboard/pages/LeaderboardPage";
 import { MultiplayerPage } from "@/features/multiplayer/pages/MultiplayerPage";
 import { ProfilePage } from "@/features/profile/pages/ProfilePage";
 import { useAuthStore } from "@/lib/state/auth-store";
@@ -85,8 +87,10 @@ export function AppRouter() {
       >
         <Route index element={<RedirectTo to="/dashboard" />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="leaderboard" element={<LeaderboardPage />} />
         <Route path="multiplayer" element={<MultiplayerPage />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="admin" element={<AdminPage />} />
       </Route>
       <Route path="*" element={<RedirectTo to="/login" />} />
     </Routes>

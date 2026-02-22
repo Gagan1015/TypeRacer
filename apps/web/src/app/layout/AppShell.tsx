@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { logout } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/state/auth-store";
 
-const links = [
+const baseLinks = [
   { to: "/dashboard", label: "Dashboard" },
+  { to: "/leaderboard", label: "Leaderboard" },
   { to: "/multiplayer", label: "Multiplayer" },
   { to: "/profile", label: "Profile" }
 ];
@@ -12,6 +14,14 @@ export function AppShell() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const setUser = useAuthStore((state) => state.setUser);
+
+  const links = useMemo(
+    () =>
+      user?.role === "admin"
+        ? [...baseLinks, { to: "/admin", label: "Admin" }]
+        : baseLinks,
+    [user?.role]
+  );
 
   async function handleLogout() {
     await logout();

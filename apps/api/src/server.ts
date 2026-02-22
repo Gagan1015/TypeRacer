@@ -4,6 +4,7 @@ import { env } from "./config/env.js";
 import { createApp } from "./app.js";
 import { connectDatabase } from "./db/connect.js";
 import { createSocketServer } from "./sockets/index.js";
+import { enqueueFullLeaderboardRecompute } from "./jobs/leaderboard-recompute.queue.js";
 
 const logger = pino({ level: env.NODE_ENV === "production" ? "info" : "debug" });
 
@@ -13,6 +14,8 @@ async function bootstrap(): Promise<void> {
   const app = createApp();
   const server = http.createServer(app);
   createSocketServer(server);
+  enqueueFullLeaderboardRecompute({ scope: "global" });
+  enqueueFullLeaderboardRecompute({ scope: "seasonal" });
 
   server.listen(env.API_PORT, () => {
     logger.info(`API listening on http://localhost:${env.API_PORT}`);
@@ -23,4 +26,3 @@ bootstrap().catch((error) => {
   logger.error(error, "Failed to start API server");
   process.exit(1);
 });
-

@@ -27,12 +27,43 @@ const typingAttemptSchema = new mongoose.Schema(
     textId: { type: String, required: true },
     prompt: { type: String, required: true },
     typed: { type: String, required: true },
-    score: { type: typingScoreSchema, required: true }
+    score: { type: typingScoreSchema, required: true },
+    antiCheat: {
+      flagged: { type: Boolean, required: true, default: false, index: true },
+      reviewStatus: {
+        type: String,
+        enum: ["pending", "cleared", "confirmed_cheat"],
+        required: true,
+        default: "cleared",
+        index: true
+      },
+      reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+      reviewedAt: { type: Date, default: null },
+      reasons: {
+        type: [
+          new mongoose.Schema(
+            {
+              code: {
+                type: String,
+                enum: ["IMPOSSIBLE_CADENCE", "PASTE_BURST", "TIMING_ANOMALY"],
+                required: true
+              },
+              severity: { type: String, enum: ["low", "medium", "high"], required: true },
+              confidence: { type: Number, required: true },
+              message: { type: String, required: true }
+            },
+            { _id: false }
+          )
+        ],
+        default: []
+      }
+    }
   },
   { timestamps: true }
 );
 
 typingAttemptSchema.index({ userId: 1, createdAt: -1 });
+typingAttemptSchema.index({ "antiCheat.flagged": 1, createdAt: -1 });
 
 export type TypingAttemptDocument = InferSchemaType<typeof typingAttemptSchema> & {
   _id: mongoose.Types.ObjectId;

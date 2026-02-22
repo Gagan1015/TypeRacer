@@ -3,7 +3,8 @@ import { raceModeSchema } from "./race.js";
 
 export const multiplayerCreateRoomSchema = z.object({
   mode: raceModeSchema.default("timed_30"),
-  customDurationMs: z.number().int().positive().max(600_000).optional()
+  customDurationMs: z.number().int().positive().max(600_000).optional(),
+  ranked: z.boolean().default(false)
 });
 
 export const multiplayerJoinRoomSchema = z.object({
