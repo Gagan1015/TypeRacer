@@ -92,6 +92,17 @@ export async function logout(): Promise<void> {
   await request<{ loggedOut: boolean }>("/api/auth/logout", { method: "POST" });
 }
 
+export type PlatformStats = {
+  totalUsers: number;
+  totalRaces: number;
+  avgWpm: number;
+};
+
+export async function getPlatformStats(): Promise<PlatformStats> {
+  return request<PlatformStats>("/api/health/stats");
+}
+
+
 export async function getMyProfile(): Promise<ProfilePayload["profile"]> {
   const data = await request<ProfilePayload>("/api/profile/me");
   return data.profile;

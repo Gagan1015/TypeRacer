@@ -535,18 +535,18 @@ export function MultiplayerPage() {
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col items-center">
       {/* Room header bar */}
-      <div className="flex w-full items-center justify-between rounded-xl bg-[#2c2e33]/70 px-5 py-3">
-        <div className="flex items-center gap-4">
+      <div className="flex w-full flex-wrap items-center justify-between gap-3 rounded-xl bg-[#2c2e33]/70 px-4 py-3 sm:px-5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
           <div className="flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-[#e2b714]"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             <span className="font-mono text-sm text-[#d1d0c5]">{room.id}</span>
           </div>
-          <span className="mx-1 h-4 w-px bg-[#3a3d42]" />
+          <span className="hidden h-4 w-px bg-[#3a3d42] sm:block" />
           <span className="flex items-center gap-1.5 text-sm text-[#646669]">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             {roomModeLabel(room)}
           </span>
-          <span className="mx-1 h-4 w-px bg-[#3a3d42]" />
+          <span className="hidden h-4 w-px bg-[#3a3d42] sm:block" />
           <span
             className={`text-sm font-medium capitalize ${
               room.status === "waiting"
@@ -763,7 +763,7 @@ export function MultiplayerPage() {
                         {isMe ? <span className="ml-1 text-[10px] text-[#e2b714]/60">(you)</span> : null}
                       </span>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex flex-wrap items-center gap-3 sm:gap-6">
                       <span className="font-mono text-[#d1d0c5]">
                         {result.score.wpm} <span className="text-[#646669]">wpm</span>
                       </span>

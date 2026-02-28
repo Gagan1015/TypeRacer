@@ -486,26 +486,26 @@ export function DashboardPage() {
       {/* ── Results panel (shown after finishing, Monkeytype style) ── */}
       {showResults ? (
         <div className="mt-8 w-full animate-fade-in">
-          <div className="flex flex-wrap items-end justify-center gap-10 py-4">
+          <div className="flex flex-wrap items-end justify-center gap-6 py-4 sm:gap-10">
             <div className="text-center">
               <p className="text-sm text-[#646669]">wpm</p>
-              <p className="font-mono text-5xl font-light text-[#e2b714]">{previewScore.wpm}</p>
+              <p className="font-mono text-4xl font-light text-[#e2b714] sm:text-5xl">{previewScore.wpm}</p>
             </div>
             <div className="text-center">
               <p className="text-sm text-[#646669]">acc</p>
-              <p className="font-mono text-5xl font-light text-[#e2b714]">{previewScore.accuracy}%</p>
+              <p className="font-mono text-4xl font-light text-[#e2b714] sm:text-5xl">{previewScore.accuracy}%</p>
             </div>
             <div className="text-center">
               <p className="text-sm text-[#646669]">raw</p>
-              <p className="font-mono text-3xl text-[#646669]">{previewScore.rawWpm}</p>
+              <p className="font-mono text-2xl text-[#646669] sm:text-3xl">{previewScore.rawWpm}</p>
             </div>
             <div className="text-center">
               <p className="text-sm text-[#646669]">time</p>
-              <p className="font-mono text-3xl text-[#646669]">{formatMs(elapsedMs)}</p>
+              <p className="font-mono text-2xl text-[#646669] sm:text-3xl">{formatMs(elapsedMs)}</p>
             </div>
             <div className="text-center">
               <p className="text-sm text-[#646669]">progress</p>
-              <p className="font-mono text-3xl text-[#646669]">{previewScore.progress}%</p>
+              <p className="font-mono text-2xl text-[#646669] sm:text-3xl">{previewScore.progress}%</p>
             </div>
           </div>
           {lastSummary ? (
@@ -582,16 +582,18 @@ export function DashboardPage() {
               {attemptsQuery.data?.map((attempt, i) => (
                 <div
                   key={attempt.id}
-                  className={`flex items-center justify-between py-2.5 ${
+                  className={`py-2.5 ${
                     i < (attemptsQuery.data?.length ?? 0) - 1 ? "border-b border-[#3a3d42]/50" : ""
                   }`}
                 >
-                  <div className="flex items-center gap-4">
-                    <span className="w-12 font-mono text-xs text-[#e2b714]">{modeLabels[attempt.mode]}</span>
-                    <span className="font-mono text-[#d1d0c5]">{attempt.score.wpm} wpm</span>
-                    <span className="font-mono text-[#646669]">{attempt.score.accuracy}%</span>
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-4">
+                      <span className="w-12 font-mono text-xs text-[#e2b714]">{modeLabels[attempt.mode]}</span>
+                      <span className="font-mono text-[#d1d0c5]">{attempt.score.wpm} wpm</span>
+                      <span className="font-mono text-[#646669]">{attempt.score.accuracy}%</span>
+                    </div>
+                    <span className="text-xs text-[#646669]">{formatDate(attempt.createdAt)}</span>
                   </div>
-                  <span className="text-xs text-[#646669]">{formatDate(attempt.createdAt)}</span>
                 </div>
               ))}
             </div>

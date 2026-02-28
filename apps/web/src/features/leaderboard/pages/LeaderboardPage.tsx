@@ -124,7 +124,7 @@ function MatchHistoryRow({ match, userId }: { match: RankedMatchRecord; userId: 
   if (!delta) return null;
 
   return (
-    <div className="flex items-center justify-between border-b border-[#3a3d42]/40 px-4 py-3 transition-colors hover:bg-[#2c2e33]/30">
+    <div className="flex flex-col gap-2 border-b border-[#3a3d42]/40 px-4 py-3 transition-colors hover:bg-[#2c2e33]/30 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div className="flex items-center gap-3">
         <OutcomeBadge outcome={delta.outcome} />
         <div>
@@ -288,13 +288,13 @@ export function LeaderboardPage() {
           {/* Table */}
           <div className="mt-4 overflow-hidden rounded-xl border border-[#3a3d42]/60 bg-[#1e2228]/60">
             {/* Header row */}
-            <div className="grid grid-cols-[3rem_1fr_5rem_5rem_5rem_5rem] gap-2 border-b border-[#3a3d42]/60 px-4 py-2.5 text-xs uppercase tracking-widest text-[#4a4d52]">
+            <div className="grid grid-cols-[2.5rem_1fr_4rem_4rem] gap-2 border-b border-[#3a3d42]/60 px-4 py-2.5 text-xs uppercase tracking-widest text-[#4a4d52] sm:grid-cols-[3rem_1fr_5rem_5rem_5rem_5rem]">
               <span>#</span>
               <span>player</span>
               <span className="text-right">best</span>
               <span className="text-right">avg</span>
-              <span className="text-right">acc</span>
-              <span className="text-right">runs</span>
+              <span className="hidden text-right sm:block">acc</span>
+              <span className="hidden text-right sm:block">runs</span>
             </div>
 
             {typingLeaderboard.isLoading ? <LoadingRows /> : null}
@@ -314,7 +314,7 @@ export function LeaderboardPage() {
               return (
                 <div
                   key={entry.userId}
-                  className={`grid grid-cols-[3rem_1fr_5rem_5rem_5rem_5rem] items-center gap-2 px-4 py-2.5 text-sm transition-colors ${
+                  className={`grid grid-cols-[2.5rem_1fr_4rem_4rem] items-center gap-2 px-4 py-2.5 text-sm transition-colors sm:grid-cols-[3rem_1fr_5rem_5rem_5rem_5rem] ${
                     i < (typingLeaderboard.data?.entries.length ?? 0) - 1 ? "border-b border-[#3a3d42]/30" : ""
                   } ${isMe ? "bg-[#e2b714]/[0.04]" : "hover:bg-[#2c2e33]/30"}`}
                 >
@@ -325,8 +325,8 @@ export function LeaderboardPage() {
                   </span>
                   <span className="text-right font-mono text-[#d1d0c5]">{entry.bestWpm}</span>
                   <span className="text-right font-mono text-[#646669]">{entry.averageWpm}</span>
-                  <span className="text-right font-mono text-[#646669]">{entry.bestAccuracy}%</span>
-                  <span className="text-right font-mono text-[#646669]">{entry.attemptsCount}</span>
+                  <span className="hidden text-right font-mono text-[#646669] sm:block">{entry.bestAccuracy}%</span>
+                  <span className="hidden text-right font-mono text-[#646669] sm:block">{entry.attemptsCount}</span>
                 </div>
               );
             })}
@@ -364,7 +364,7 @@ export function LeaderboardPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-6 text-center">
+                <div className="flex flex-wrap gap-4 text-center sm:gap-6">
                   <div>
                     <p className="text-[10px] uppercase tracking-widest text-[#4a4d52]">played</p>
                     <p className="mt-1 font-mono text-lg text-[#d1d0c5]">{rankedProfileQuery.data.global.gamesPlayed}</p>
@@ -416,14 +416,14 @@ export function LeaderboardPage() {
 
           {/* Ranked table */}
           <div className="mt-4 overflow-hidden rounded-xl border border-[#3a3d42]/60 bg-[#1e2228]/60">
-            <div className="grid grid-cols-[3rem_1fr_5rem_4rem_4rem_4rem_5rem] gap-2 border-b border-[#3a3d42]/60 px-4 py-2.5 text-xs uppercase tracking-widest text-[#4a4d52]">
+            <div className="grid grid-cols-[2.5rem_1fr_4rem_3rem_3rem] gap-2 border-b border-[#3a3d42]/60 px-4 py-2.5 text-xs uppercase tracking-widest text-[#4a4d52] sm:grid-cols-[3rem_1fr_5rem_4rem_4rem_4rem_5rem]">
               <span>#</span>
               <span>player</span>
               <span className="text-right">rating</span>
               <span className="text-right">W</span>
               <span className="text-right">L</span>
-              <span className="text-right">D</span>
-              <span className="text-right">win%</span>
+              <span className="hidden text-right sm:block">D</span>
+              <span className="hidden text-right sm:block">win%</span>
             </div>
 
             {rankedLbQuery.isLoading ? <LoadingRows /> : null}
@@ -443,7 +443,7 @@ export function LeaderboardPage() {
               return (
                 <div
                   key={entry.userId}
-                  className={`grid grid-cols-[3rem_1fr_5rem_4rem_4rem_4rem_5rem] items-center gap-2 px-4 py-2.5 text-sm transition-colors ${
+                  className={`grid grid-cols-[2.5rem_1fr_4rem_3rem_3rem] items-center gap-2 px-4 py-2.5 text-sm transition-colors sm:grid-cols-[3rem_1fr_5rem_4rem_4rem_4rem_5rem] ${
                     i < (rankedLbQuery.data?.entries.length ?? 0) - 1 ? "border-b border-[#3a3d42]/30" : ""
                   } ${isMe ? "bg-[#e2b714]/[0.04]" : "hover:bg-[#2c2e33]/30"}`}
                 >
@@ -455,8 +455,8 @@ export function LeaderboardPage() {
                   <span className="text-right font-mono font-medium text-[#d1d0c5]">{entry.rating}</span>
                   <span className="text-right font-mono text-emerald-400">{entry.wins}</span>
                   <span className="text-right font-mono text-[#ca4754]">{entry.losses}</span>
-                  <span className="text-right font-mono text-[#646669]">{entry.draws}</span>
-                  <span className="text-right font-mono text-[#646669]">{entry.winRate}%</span>
+                  <span className="hidden text-right font-mono text-[#646669] sm:block">{entry.draws}</span>
+                  <span className="hidden text-right font-mono text-[#646669] sm:block">{entry.winRate}%</span>
                 </div>
               );
             })}

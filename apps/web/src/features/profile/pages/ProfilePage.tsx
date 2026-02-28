@@ -134,7 +134,7 @@ export function ProfilePage() {
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col items-center">
       {/* ── Profile header ── */}
-      <div className="flex w-full items-center gap-5 rounded-xl bg-[#2c2e33]/70 px-6 py-5">
+      <div className="flex w-full flex-col items-center gap-4 rounded-xl bg-[#2c2e33]/70 px-5 py-5 sm:flex-row sm:items-center sm:gap-5 sm:px-6">
         {/* Avatar */}
         {form.avatarUrl ? (
           <img
@@ -240,7 +240,7 @@ export function ProfilePage() {
             {/* Keyboard layout */}
             <div>
               <label className="mb-2 block text-sm text-[#646669]">keyboard layout</label>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 {keyboardOptions.map((opt) => (
                   <button
                     key={opt.value}
@@ -331,7 +331,7 @@ export function ProfilePage() {
                 {attemptsQuery.data.map((attempt, i) => (
                   <div
                     key={attempt.id}
-                    className={`flex items-center justify-between py-3 ${
+                    className={`flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between ${
                       i < (attemptsQuery.data?.length ?? 0) - 1 ? "border-b border-[#3a3d42]/50" : ""
                     }`}
                   >

@@ -4,6 +4,7 @@ import { AppShell } from "./layout/AppShell";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { SignupPage } from "@/features/auth/pages/SignupPage";
 import { OAuthCallbackPage } from "@/features/auth/pages/OAuthCallbackPage";
+import { LandingPage } from "@/features/landing/pages/LandingPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { AdminPage } from "@/features/admin/pages/AdminPage";
 import { LeaderboardPage } from "@/features/leaderboard/pages/LeaderboardPage";
@@ -53,6 +54,23 @@ function GuestRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+/** Shows landing page for guests, redirects to dashboard for authenticated users */
+function LandingOrDashboard() {
+  const user = useAuthStore((state) => state.user);
+  const hydrated = useAuthStore((state) => state.hydrated);
+  const hydrating = useAuthStore((state) => state.hydrating);
+
+  if (!hydrated || hydrating) {
+    return <div className="p-8 text-sm text-muted">Loading...</div>;
+  }
+
+  if (user) {
+    return <RedirectTo to="/dashboard" />;
+  }
+
+  return <LandingPage />;
+}
+
 export function AppRouter() {
   const hydrate = useAuthStore((state) => state.hydrate);
 
@@ -62,6 +80,10 @@ export function AppRouter() {
 
   return (
     <Routes>
+      {/* Public root — landing page or redirect to dashboard */}
+      <Route path="/" element={<LandingOrDashboard />} />
+
+      {/* Guest-only routes */}
       <Route
         path="/login"
         element={
@@ -78,24 +100,27 @@ export function AppRouter() {
           </GuestRoute>
         }
       />
+
+      {/* OAuth callback */}
       <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+
+      {/* Protected app routes (inside AppShell) */}
       <Route
-        path="/"
         element={
           <ProtectedRoute>
             <AppShell />
           </ProtectedRoute>
         }
       >
-        <Route index element={<RedirectTo to="/dashboard" />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="leaderboard" element={<LeaderboardPage />} />
         <Route path="multiplayer" element={<MultiplayerPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="admin" element={<AdminPage />} />
       </Route>
-      <Route path="*" element={<RedirectTo to="/login" />} />
+
+      {/* Catch-all */}
+      <Route path="*" element={<RedirectTo to="/" />} />
     </Routes>
   );
 }
-
