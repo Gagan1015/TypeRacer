@@ -380,103 +380,107 @@ export function DashboardPage() {
         </button>
       </div>
 
-      {/* ── Mode info tags ── */}
-      <div className="mt-4 flex items-center justify-center gap-5 text-sm">
-        <span className="flex items-center gap-1.5 text-[#646669]">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
-          repeated
-        </span>
-        <span className="flex items-center gap-1.5 text-[#646669]">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          english
-        </span>
-        <span className="flex items-center gap-1.5 text-[#646669]">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          {mode === "timed_custom" ? `${Math.round(customDurationMs / 1000)}s` : modeLabels[mode]}
-        </span>
-      </div>
+      {/* ── Mode info tags (hidden when results are showing) ── */}
+      {!showResults ? (
+        <div className="mt-4 flex items-center justify-center gap-5 text-sm">
+          <span className="flex items-center gap-1.5 text-[#646669]">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+            repeated
+          </span>
+          <span className="flex items-center gap-1.5 text-[#646669]">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            english
+          </span>
+          <span className="flex items-center gap-1.5 text-[#646669]">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            {mode === "timed_custom" ? `${Math.round(customDurationMs / 1000)}s` : modeLabels[mode]}
+          </span>
+        </div>
+      ) : null}
 
-      {/* ── Typing area (main focus) ── */}
-      <div
-        ref={containerRef}
-        className="relative mt-10 w-full cursor-text overflow-hidden px-2"
-        onClick={() => inputRef.current?.focus()}
-        style={{ minHeight: "220px" }}
-      >
-        {/* Hidden measurement span for monospace char width */}
-        <span
-          ref={measureRef}
-          className="pointer-events-none invisible absolute font-mono text-[clamp(1.4rem,2.4vw,2rem)] tracking-wide"
-          aria-hidden="true"
+      {/* ── Typing area (hidden when results are showing) ── */}
+      {!showResults ? (
+        <div
+          ref={containerRef}
+          className="relative mt-10 w-full cursor-text overflow-hidden px-2"
+          onClick={() => inputRef.current?.focus()}
+          style={{ minHeight: "220px" }}
         >
-          MMMMMMMMMM
-        </span>
-        {textQuery.isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[#646669]" />
-          </div>
-        ) : null}
-        {textQuery.isError ? (
-          <p className="text-center font-mono text-xl text-red-400/80">could not load text</p>
-        ) : null}
+          {/* Hidden measurement span for monospace char width */}
+          <span
+            ref={measureRef}
+            className="pointer-events-none invisible absolute font-mono text-[clamp(1.4rem,2.4vw,2rem)] tracking-wide"
+            aria-hidden="true"
+          >
+            MMMMMMMMMM
+          </span>
+          {textQuery.isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[#646669]" />
+            </div>
+          ) : null}
+          {textQuery.isError ? (
+            <p className="text-center font-mono text-xl text-red-400/80">could not load text</p>
+          ) : null}
 
-        {!textQuery.isLoading && !textQuery.isError ? (
-          <div className="mx-auto w-fit space-y-2 font-mono text-[clamp(1.4rem,2.4vw,2rem)] leading-[1.85] tracking-wide">
-            {promptWindow.visibleLines.map((line, lineIndex) => (
-              <p key={`${line.start}-${line.end}-${lineIndex}`} className="whitespace-nowrap text-[#646669]">
-                {line.text.split("").map((char, index) => {
-                  const globalIndex = line.start + index;
-                  const typedChar = typed[globalIndex];
-                  const isCurrent = status !== "finished" && globalIndex === typed.length;
+          {!textQuery.isLoading && !textQuery.isError ? (
+            <div className="mx-auto w-fit space-y-2 font-mono text-[clamp(1.4rem,2.4vw,2rem)] leading-[1.85] tracking-wide">
+              {promptWindow.visibleLines.map((line, lineIndex) => (
+                <p key={`${line.start}-${line.end}-${lineIndex}`} className="whitespace-nowrap text-[#646669]">
+                  {line.text.split("").map((char, index) => {
+                    const globalIndex = line.start + index;
+                    const typedChar = typed[globalIndex];
+                    const isCurrent = status !== "finished" && globalIndex === typed.length;
 
-                  let className = "text-[#646669] transition-colors duration-75";
-                  if (typedChar !== undefined) {
-                    className = areEquivalentTypingChars(char, typedChar)
-                      ? "text-[#d1d0c5]"
-                      : "text-[#ca4754] bg-[#ca4754]/10";
-                  } else if (isCurrent) {
-                    className = "border-l-2 border-[#e2b714] pl-[1px] text-[#646669] animate-caret-blink";
-                  }
+                    let className = "text-[#646669] transition-colors duration-75";
+                    if (typedChar !== undefined) {
+                      className = areEquivalentTypingChars(char, typedChar)
+                        ? "text-[#d1d0c5]"
+                        : "text-[#ca4754] bg-[#ca4754]/10";
+                    } else if (isCurrent) {
+                      className = "border-l-2 border-[#e2b714] pl-[1px] text-[#646669] animate-caret-blink";
+                    }
 
-                  return (
-                    <span key={`${globalIndex}-${char}`} className={className}>
-                      {char}
-                    </span>
-                  );
-                })}
-              </p>
-            ))}
-          </div>
-        ) : null}
+                    return (
+                      <span key={`${globalIndex}-${char}`} className={className}>
+                        {char}
+                      </span>
+                    );
+                  })}
+                </p>
+              ))}
+            </div>
+          ) : null}
 
-        <textarea
-          ref={inputRef}
-          value={typed}
-          onChange={(event) => {
-            if (status === "finished") return;
-            const clean = event.target.value.replace(/\r?\n/g, " ");
-            const nextTyped = clean.slice(0, prompt.length);
-            if (nextTyped.length > 0 && status !== "running") {
-              setStatus("running");
-              setStartedAt(Date.now());
-              setElapsedMs(0);
-              finishingRef.current = false;
-            }
-            setTyped(nextTyped);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && status === "running") {
-              event.preventDefault();
-              finishRace();
-            }
-          }}
-          className="absolute inset-0 h-full w-full resize-none border-0 bg-transparent opacity-0 outline-none"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck={false}
-        />
-      </div>
+          <textarea
+            ref={inputRef}
+            value={typed}
+            onChange={(event) => {
+              if (status === "finished") return;
+              const clean = event.target.value.replace(/\r?\n/g, " ");
+              const nextTyped = clean.slice(0, prompt.length);
+              if (nextTyped.length > 0 && status !== "running") {
+                setStatus("running");
+                setStartedAt(Date.now());
+                setElapsedMs(0);
+                finishingRef.current = false;
+              }
+              setTyped(nextTyped);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && status === "running") {
+                event.preventDefault();
+                finishRace();
+              }
+            }}
+            className="absolute inset-0 h-full w-full resize-none border-0 bg-transparent opacity-0 outline-none"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
+        </div>
+      ) : null}
 
       {/* ── Live timer (only while running) ── */}
       {status === "running" ? (
@@ -486,49 +490,118 @@ export function DashboardPage() {
         </div>
       ) : null}
 
-      {/* ── Results panel (shown after finishing, Monkeytype style) ── */}
+      {/* ── Results panel (shown after finishing — premium design) ── */}
       {showResults ? (
-        <div className="mt-8 w-full animate-fade-in">
-          <div className="flex flex-wrap items-end justify-center gap-6 py-4 sm:gap-10">
-            <div className="text-center">
-              <p className="text-sm text-[#646669]">wpm</p>
-              <p className="font-mono text-4xl font-light text-[#e2b714] sm:text-5xl">{previewScore.wpm}</p>
+        <div className="mt-8 w-full animate-results-appear">
+          {/* Results card */}
+          <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-[#2c2e33] bg-gradient-to-b from-[#2c2e33]/80 to-[#1e2228]/90 px-4 py-6 shadow-2xl shadow-black/30 sm:px-8 sm:py-8">
+            {/* Header */}
+            <div className="mb-6 flex items-center justify-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e2b714]/10">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#e2b714" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 7 7 7 7"/>
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5C17 4 17 7 17 7"/>
+                  <path d="M4 22h16"/>
+                  <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/>
+                  <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/>
+                  <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-[#d1d0c5]">Race Complete</h2>
+                <p className="text-xs text-[#646669]">{mode === "timed_custom" ? `${Math.round(customDurationMs / 1000)}s` : modeLabels[mode]} · {previewScore.completed ? "completed" : `${previewScore.progress}% progress`}</p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-[#646669]">acc</p>
-              <p className="font-mono text-4xl font-light text-[#e2b714] sm:text-5xl">{previewScore.accuracy}%</p>
+
+            {/* Hero stats — WPM & Accuracy */}
+            <div className="mb-6 flex items-center justify-center gap-6 sm:gap-12">
+              <div className="min-w-0 text-center">
+                <p className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[#646669] sm:text-xs">wpm</p>
+                <p className="font-mono text-3xl font-bold tracking-tight text-[#e2b714] sm:text-5xl lg:text-6xl" style={{ textShadow: '0 0 40px rgba(226, 183, 20, 0.15)' }}>{previewScore.wpm}</p>
+              </div>
+              <div className="h-12 w-px shrink-0 bg-gradient-to-b from-transparent via-[#3a3d42] to-transparent sm:h-16" />
+              <div className="min-w-0 text-center">
+                <p className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[#646669] sm:text-xs">accuracy</p>
+                <p className={`font-mono text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl ${
+                  previewScore.accuracy >= 95 ? 'text-emerald-400' : previewScore.accuracy >= 80 ? 'text-amber-400' : 'text-red-400'
+                }`} style={{ textShadow: previewScore.accuracy >= 95 ? '0 0 40px rgba(52, 211, 153, 0.15)' : previewScore.accuracy >= 80 ? '0 0 40px rgba(251, 191, 36, 0.15)' : '0 0 40px rgba(248, 113, 113, 0.15)' }}>{previewScore.accuracy}%</p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-[#646669]">raw</p>
-              <p className="font-mono text-2xl text-[#646669] sm:text-3xl">{previewScore.rawWpm}</p>
+
+            {/* Divider */}
+            <div className="mx-auto mb-5 h-px w-3/4 bg-gradient-to-r from-transparent via-[#3a3d42] to-transparent" />
+
+            {/* Secondary stats row */}
+            <div className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+              <div className="rounded-xl bg-[#1e2228]/80 px-3 py-2.5 text-center sm:px-4 sm:py-3">
+                <p className="text-[9px] font-medium uppercase tracking-widest text-[#4a4d52] sm:text-[10px]">raw wpm</p>
+                <p className="mt-1 font-mono text-lg font-medium text-[#d1d0c5] sm:text-xl">{previewScore.rawWpm}</p>
+              </div>
+              <div className="rounded-xl bg-[#1e2228]/80 px-3 py-2.5 text-center sm:px-4 sm:py-3">
+                <p className="text-[9px] font-medium uppercase tracking-widest text-[#4a4d52] sm:text-[10px]">time</p>
+                <p className="mt-1 font-mono text-lg font-medium text-[#d1d0c5] sm:text-xl">{formatMs(elapsedMs)}</p>
+              </div>
+              <div className="rounded-xl bg-[#1e2228]/80 px-3 py-2.5 text-center sm:px-4 sm:py-3">
+                <p className="text-[9px] font-medium uppercase tracking-widest text-[#4a4d52] sm:text-[10px]">correct</p>
+                <p className="mt-1 font-mono text-lg font-medium text-emerald-400/90 sm:text-xl">{previewScore.correctChars}</p>
+              </div>
+              <div className="rounded-xl bg-[#1e2228]/80 px-3 py-2.5 text-center sm:px-4 sm:py-3">
+                <p className="text-[9px] font-medium uppercase tracking-widest text-[#4a4d52] sm:text-[10px]">incorrect</p>
+                <p className="mt-1 font-mono text-lg font-medium text-red-400/90 sm:text-xl">{previewScore.incorrectChars}</p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-[#646669]">time</p>
-              <p className="font-mono text-2xl text-[#646669] sm:text-3xl">{formatMs(elapsedMs)}</p>
+
+            {/* Character accuracy bar */}
+            <div className="mb-6">
+              <div className="mb-2 flex items-center justify-between text-[10px] font-medium uppercase tracking-widest text-[#4a4d52]">
+                <span>character accuracy</span>
+                <span className="text-[#646669]">{previewScore.correctChars}/{previewScore.totalTypedChars} chars</span>
+              </div>
+              <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-[#1e2228]">
+                {previewScore.totalTypedChars > 0 ? (
+                  <>
+                    <div
+                      className="h-full rounded-l-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-700"
+                      style={{ width: `${(previewScore.correctChars / previewScore.totalTypedChars) * 100}%` }}
+                    />
+                    <div
+                      className="h-full bg-gradient-to-r from-red-500 to-red-400 transition-all duration-700"
+                      style={{ width: `${(previewScore.incorrectChars / previewScore.totalTypedChars) * 100}%` }}
+                    />
+                  </>
+                ) : (
+                  <div className="h-full w-full bg-[#3a3d42]" />
+                )}
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-sm text-[#646669]">progress</p>
-              <p className="font-mono text-2xl text-[#646669] sm:text-3xl">{previewScore.progress}%</p>
+
+            {/* Save status */}
+            {lastSummary ? (
+              <p className="mb-4 text-center text-xs text-[#646669]">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="mr-1 inline-block h-3 w-3 align-[-1px]">
+                  <path d="M20 6 9 17l-5-5"/>
+                </svg>
+                {lastSummary}
+              </p>
+            ) : null}
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+              <button
+                onClick={newText}
+                className="flex items-center gap-2 rounded-xl bg-[#e2b714]/10 px-4 py-2 text-sm font-medium text-[#e2b714] transition-all hover:bg-[#e2b714]/20 hover:shadow-lg hover:shadow-[#e2b714]/5 sm:px-5 sm:py-2.5"
+              >
+                next test
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              </button>
+              <button
+                onClick={resetRound}
+                className="flex items-center gap-2 rounded-xl border border-[#3a3d42] px-4 py-2 text-sm text-[#646669] transition-all hover:border-[#4a4d52] hover:text-[#d1d0c5] sm:px-5 sm:py-2.5"
+              >
+                restart
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+              </button>
             </div>
-          </div>
-          {lastSummary ? (
-            <p className="mt-1 text-center text-xs text-[#646669]">{lastSummary}</p>
-          ) : null}
-          <div className="mt-4 flex justify-center">
-            <button
-              onClick={newText}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-[#646669] transition-colors hover:text-[#d1d0c5]"
-            >
-              next test
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            </button>
-            <button
-              onClick={resetRound}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-[#646669] transition-colors hover:text-[#d1d0c5]"
-            >
-              restart
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
-            </button>
           </div>
         </div>
       ) : null}

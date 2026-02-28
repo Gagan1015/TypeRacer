@@ -55,31 +55,61 @@ function roomModeLabel(room: MultiplayerRoomState): string {
 
 function PlayerProgressBar({
   player,
-  isYou
+  isYou,
+  isHost,
+  showReady
 }: {
   player: MultiplayerRoomState["players"][number];
   isYou: boolean;
+  isHost: boolean;
+  showReady: boolean;
 }) {
   return (
     <div className="group relative">
       <div className="flex items-center gap-3">
-        {/* Avatar circle */}
-        <div
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold uppercase ${
-            isYou
-              ? "border border-[#e2b714]/60 bg-[#e2b714]/15 text-[#e2b714]"
-              : "border border-[#3a3d42] bg-[#2c2e33] text-[#646669]"
-          }`}
-        >
-          {player.username.slice(0, 2)}
+        {/* Avatar circle with ready indicator */}
+        <div className="relative shrink-0">
+          <div
+            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold uppercase ${
+              isYou
+                ? "border border-[#e2b714]/60 bg-[#e2b714]/15 text-[#e2b714]"
+                : "border border-[#3a3d42] bg-[#2c2e33] text-[#646669]"
+            }`}
+          >
+            {player.username.slice(0, 2)}
+          </div>
+          {/* Ready dot indicator */}
+          {showReady ? (
+            <span
+              className={`absolute -bottom-0.5 -right-0.5 block h-3 w-3 rounded-full border-2 border-[#25282f] ${
+                player.ready ? "bg-emerald-400" : "bg-[#4a4d52]"
+              }`}
+              title={player.ready ? "Ready" : "Not ready"}
+            />
+          ) : null}
         </div>
 
         {/* Name + track */}
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center justify-between gap-2">
-            <span className={`truncate text-sm ${isYou ? "font-medium text-[#d1d0c5]" : "text-[#646669]"}`}>
-              {player.username}
-              {isYou ? <span className="ml-1 text-[10px] text-[#e2b714]">(you)</span> : null}
+            <span className="flex items-center gap-1.5">
+              <span className={`truncate text-sm ${isYou ? "font-medium text-[#d1d0c5]" : "text-[#646669]"}`}>
+                {player.username}
+              </span>
+              {isYou ? <span className="text-[10px] text-[#e2b714]">(you)</span> : null}
+              {isHost ? (
+                <span className="inline-flex items-center gap-0.5 rounded bg-[#e2b714]/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-[#e2b714]" title="Room host">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-2.5 w-2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  host
+                </span>
+              ) : null}
+              {showReady ? (
+                <span className={`text-[10px] font-medium ${
+                  player.ready ? "text-emerald-400" : "text-[#4a4d52]"
+                }`}>
+                  {player.ready ? "ready" : "not ready"}
+                </span>
+              ) : null}
             </span>
             <div className="flex items-center gap-3 text-xs">
               <span className="font-mono text-[#d1d0c5]">
@@ -122,6 +152,8 @@ export function MultiplayerPage() {
   const socketRef = useRef<Socket | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const finishSentRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const measureRef = useRef<HTMLSpanElement | null>(null);
   const user = useAuthStore((state) => state.user);
 
   const [connection, setConnection] = useState<ConnectionState>("connecting");
@@ -138,6 +170,7 @@ export function MultiplayerPage() {
   const [startedAtMs, setStartedAtMs] = useState<number | null>(null);
   const [durationMs, setDurationMs] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [charsPerLine, setCharsPerLine] = useState(48);
 
   useEffect(() => {
     const socket = createMultiplayerSocket();
@@ -242,6 +275,25 @@ export function MultiplayerPage() {
     return () => window.clearInterval(interval);
   }, [durationMs, room, startedAtMs, typed]);
 
+  // Measure how many monospace chars fit in the container (same as single player)
+  useEffect(() => {
+    function measure() {
+      const container = containerRef.current;
+      const span = measureRef.current;
+      if (!container || !span) return;
+      const containerWidth = container.clientWidth - 16;
+      const totalWidth = span.getBoundingClientRect().width;
+      const charWidth = totalWidth / 10;
+      if (charWidth > 0) {
+        setCharsPerLine(Math.max(Math.floor(containerWidth / charWidth) - 2, 20));
+      }
+    }
+    measure();
+    void document.fonts.ready.then(() => measure());
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
   const prompt = room?.prompt ?? "";
   const me = useMemo(
     () => room?.players.find((player) => player.userId === user?.id) ?? null,
@@ -302,7 +354,7 @@ export function MultiplayerPage() {
   const myResult = activeResults.find((r) => r.userId === user?.id);
   const iAmWinner = myResult?.place === 1;
 
-  const promptWindow = useMemo(() => buildPromptWindow(prompt, typed.length, 72, 3), [prompt, typed.length]);
+  const promptWindow = useMemo(() => buildPromptWindow(prompt, typed.length, charsPerLine, 3), [prompt, typed.length, charsPerLine]);
 
   const createRoom = useCallback(() => {
     setErrorMessage("");
@@ -568,18 +620,28 @@ export function MultiplayerPage() {
           {room.status !== "racing" ? (
             <button
               onClick={toggleReady}
-              className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-lg border px-4 py-1.5 text-sm font-medium transition-all ${
                 me?.ready
-                  ? "bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25"
-                  : "bg-[#2c2e33] text-[#646669] hover:text-[#d1d0c5]"
+                  ? "border-emerald-500/30 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25"
+                  : "animate-ready-pulse border-[#e2b714]/40 bg-[#e2b714]/10 text-[#e2b714] hover:bg-[#e2b714]/20"
               }`}
             >
-              {me?.ready ? "✓ ready" : "set ready"}
+              {me?.ready ? (
+                <span className="flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><path d="M20 6 9 17l-5-5"/></svg>
+                  ready
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#e2b714] animate-pulse" />
+                  set ready
+                </span>
+              )}
             </button>
           ) : null}
           <button
             onClick={leaveRoom}
-            className="rounded-lg px-3 py-1.5 text-sm text-[#646669] transition-colors hover:text-[#ca4754]"
+            className="rounded-lg border border-[#3a3d42] px-3 py-1.5 text-sm text-[#646669] transition-all hover:border-[#ca4754]/40 hover:bg-[#ca4754]/10 hover:text-[#ca4754]"
           >
             leave
           </button>
@@ -590,16 +652,20 @@ export function MultiplayerPage() {
         <p className="mt-3 w-full rounded-lg bg-[#ca4754]/10 px-4 py-2 text-sm text-[#ca4754]">{errorMessage}</p>
       ) : null}
 
-      {/* ── Player progress lanes ── */}
-      <div className="mt-6 w-full space-y-3">
-        {room.players.map((player) => (
-          <PlayerProgressBar
-            key={player.userId}
-            player={player}
-            isYou={player.userId === user?.id}
-          />
-        ))}
-      </div>
+      {/* ── Player progress lanes (hidden during racing and finished) ── */}
+      {room.status !== "racing" && room.status !== "finished" ? (
+        <div className="mt-6 w-full space-y-3">
+          {room.players.map((player) => (
+            <PlayerProgressBar
+              key={player.userId}
+              player={player}
+              isYou={player.userId === user?.id}
+              isHost={player.userId === room.hostUserId}
+              showReady={room.status === "waiting" || room.status === "finished"}
+            />
+          ))}
+        </div>
+      ) : null}
 
       {/* ── Countdown ── */}
       {room.status === "countdown" ? (
@@ -638,15 +704,25 @@ export function MultiplayerPage() {
             <span className="text-xs">{previewScore?.accuracy ?? 100}%</span>
           </div>
 
-          {/* Typing surface */}
+          {/* Typing surface (matching single player layout) */}
           <div
-            className="relative mt-8 w-full cursor-text px-2"
+            ref={containerRef}
+            className="relative mt-10 w-full cursor-text overflow-hidden px-2"
             onClick={() => inputRef.current?.focus()}
-            style={{ minHeight: "190px" }}
+            style={{ minHeight: "220px" }}
           >
-            <div className="space-y-2 font-mono text-[clamp(1.4rem,2.4vw,2rem)] leading-[1.85] tracking-wide">
+            {/* Hidden measurement span for monospace char width */}
+            <span
+              ref={measureRef}
+              className="pointer-events-none invisible absolute font-mono text-[clamp(1.4rem,2.4vw,2rem)] tracking-wide"
+              aria-hidden="true"
+            >
+              MMMMMMMMMM
+            </span>
+
+            <div className="mx-auto w-fit space-y-2 font-mono text-[clamp(1.4rem,2.4vw,2rem)] leading-[1.85] tracking-wide">
               {promptWindow.visibleLines.map((line, lineIndex) => (
-                <p key={`${line.start}-${line.end}-${lineIndex}`} className="text-[#646669]">
+                <p key={`${line.start}-${line.end}-${lineIndex}`} className="whitespace-nowrap text-[#646669]">
                   {line.text.split("").map((char, index) => {
                     const globalIndex = line.start + index;
                     const typedChar = typed[globalIndex];
@@ -685,117 +761,155 @@ export function MultiplayerPage() {
         </>
       ) : null}
 
-      {/* ── Results (finished state) ── */}
+      {/* ── Results (finished state — premium design) ── */}
       {room.status === "finished" ? (
-        <div className="mt-8 w-full animate-fade-in">
-          {/* Winner congratulation banner */}
-          {winner ? (
-            <div className="mb-8 flex flex-col items-center">
-              {iAmWinner ? (
-                <>
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl">🏆</span>
-                    <h3 className="bg-gradient-to-r from-[#e2b714] to-[#f5e17d] bg-clip-text font-display text-3xl font-bold text-transparent">
-                      victory!
-                    </h3>
-                    <span className="text-4xl">🏆</span>
+        <div className="mt-8 w-full animate-results-appear">
+          <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-[#2c2e33] bg-gradient-to-b from-[#2c2e33]/80 to-[#1e2228]/90 px-4 py-6 shadow-2xl shadow-black/30 sm:px-8 sm:py-8">
+            {/* Winner banner */}
+            {winner ? (
+              <div className="mb-6 text-center">
+                {iAmWinner ? (
+                  <>
+                    <div className="flex items-center justify-center gap-3">
+                      <span className="text-3xl">🏆</span>
+                      <h3 className="bg-gradient-to-r from-[#e2b714] to-[#f5e17d] bg-clip-text text-2xl font-bold text-transparent sm:text-3xl">
+                        victory!
+                      </h3>
+                      <span className="text-3xl">🏆</span>
+                    </div>
+                    <p className="mt-1 text-xs text-[#646669]">you finished first — well played!</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-xl">🏆</span>
+                      <h3 className="text-xl font-semibold text-[#e2b714]">{winner.username} wins!</h3>
+                    </div>
+                    {myResult ? (
+                      <p className="mt-1 text-xs text-[#646669]">
+                        you placed {placeLabels[myResult.place - 1] ?? `#${myResult.place}`} — keep practicing!
+                      </p>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            ) : null}
+
+            {/* Hero stats — WPM, Accuracy, Place */}
+            {myResult ? (
+              <>
+                <div className="mb-6 flex items-center justify-center gap-6 sm:gap-10">
+                  <div className="min-w-0 text-center">
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[#646669] sm:text-xs">wpm</p>
+                    <p className="font-mono text-3xl font-bold tracking-tight text-[#e2b714] sm:text-5xl" style={{ textShadow: '0 0 40px rgba(226, 183, 20, 0.15)' }}>{myResult.score.wpm}</p>
                   </div>
-                  <p className="mt-2 text-sm text-[#646669]">you finished first — well played!</p>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">🏆</span>
-                    <h3 className="font-display text-xl font-semibold text-[#e2b714]">{winner.username} wins!</h3>
+                  <div className="h-12 w-px shrink-0 bg-gradient-to-b from-transparent via-[#3a3d42] to-transparent sm:h-16" />
+                  <div className="min-w-0 text-center">
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[#646669] sm:text-xs">accuracy</p>
+                    <p className={`font-mono text-3xl font-bold tracking-tight sm:text-5xl ${
+                      myResult.score.accuracy >= 95 ? 'text-emerald-400' : myResult.score.accuracy >= 80 ? 'text-amber-400' : 'text-red-400'
+                    }`} style={{ textShadow: myResult.score.accuracy >= 95 ? '0 0 40px rgba(52, 211, 153, 0.15)' : myResult.score.accuracy >= 80 ? '0 0 40px rgba(251, 191, 36, 0.15)' : '0 0 40px rgba(248, 113, 113, 0.15)' }}>{myResult.score.accuracy}%</p>
                   </div>
-                  {myResult ? (
-                    <p className="mt-1 text-sm text-[#646669]">
-                      you placed {placeLabels[myResult.place - 1] ?? `#${myResult.place}`} — keep practicing!
+                  <div className="h-12 w-px shrink-0 bg-gradient-to-b from-transparent via-[#3a3d42] to-transparent sm:h-16" />
+                  <div className="min-w-0 text-center">
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[#646669] sm:text-xs">place</p>
+                    <p className="font-mono text-3xl font-bold tracking-tight text-[#e2b714] sm:text-5xl">
+                      {placeLabels[myResult.place - 1] ?? `#${myResult.place}`}
                     </p>
-                  ) : null}
-                </>
-              )}
-            </div>
-          ) : null}
-
-          {/* Big stats for your own result (Monkeytype style) */}
-          {myResult ? (
-            <div className="flex flex-wrap items-end justify-center gap-10 py-4">
-              <div className="text-center">
-                <p className="text-sm text-[#646669]">wpm</p>
-                <p className="font-mono text-5xl font-light text-[#e2b714]">{myResult.score.wpm}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-[#646669]">acc</p>
-                <p className="font-mono text-5xl font-light text-[#e2b714]">{myResult.score.accuracy}%</p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-[#646669]">place</p>
-                <p className="font-mono text-5xl font-light text-[#e2b714]">
-                  {placeMedals[myResult.place - 1] ?? ""}{" "}
-                  {placeLabels[myResult.place - 1] ?? `#${myResult.place}`}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-sm text-[#646669]">progress</p>
-                <p className="font-mono text-3xl text-[#646669]">{myResult.score.progress}%</p>
-              </div>
-            </div>
-          ) : null}
-
-          {/* Leaderboard */}
-          <div className="mt-6 rounded-xl bg-[#2c2e33]/50 p-5">
-            <h3 className="mb-3 text-sm font-medium text-[#646669]">leaderboard</h3>
-            <div className="space-y-0 text-sm">
-              {activeResults.map((result, i) => {
-                const isMe = result.userId === user?.id;
-                return (
-                  <div
-                    key={result.userId}
-                    className={`flex items-center justify-between py-3 ${
-                      i < activeResults.length - 1 ? "border-b border-[#3a3d42]/50" : ""
-                    } ${isMe ? "-mx-3 rounded-md bg-[#e2b714]/5 px-3" : ""}`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="w-8 text-center font-mono text-[#e2b714]">
-                        {placeMedals[result.place - 1] ?? `#${result.place}`}
-                      </span>
-                      <span className={`font-medium ${isMe ? "text-[#e2b714]" : "text-[#d1d0c5]"}`}>
-                        {result.username}
-                        {isMe ? <span className="ml-1 text-[10px] text-[#e2b714]/60">(you)</span> : null}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 sm:gap-6">
-                      <span className="font-mono text-[#d1d0c5]">
-                        {result.score.wpm} <span className="text-[#646669]">wpm</span>
-                      </span>
-                      <span className="font-mono text-[#646669]">{result.score.accuracy}%</span>
-                    </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                </div>
 
-          {/* Actions */}
-          <div className="mt-6 flex justify-center gap-4">
-            <button
-              onClick={toggleReady}
-              className={`flex items-center gap-2 rounded-lg px-5 py-2 text-sm font-medium transition-colors ${
-                me?.ready
-                  ? "bg-emerald-500/15 text-emerald-400"
-                  : "text-[#646669] hover:text-[#d1d0c5]"
-              }`}
-            >
-              {me?.ready ? "✓ ready" : "play again"}
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
-            </button>
-            <button
-              onClick={leaveRoom}
-              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-[#646669] transition-colors hover:text-[#ca4754]"
-            >
-              leave room
-            </button>
+                {/* Divider */}
+                <div className="mx-auto mb-5 h-px w-3/4 bg-gradient-to-r from-transparent via-[#3a3d42] to-transparent" />
+
+                {/* Secondary stats */}
+                <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
+                  <div className="rounded-xl bg-[#1e2228]/80 px-3 py-2.5 text-center sm:px-4 sm:py-3">
+                    <p className="text-[9px] font-medium uppercase tracking-widest text-[#4a4d52] sm:text-[10px]">raw wpm</p>
+                    <p className="mt-1 font-mono text-lg font-medium text-[#d1d0c5] sm:text-xl">{myResult.score.rawWpm}</p>
+                  </div>
+                  <div className="rounded-xl bg-[#1e2228]/80 px-3 py-2.5 text-center sm:px-4 sm:py-3">
+                    <p className="text-[9px] font-medium uppercase tracking-widest text-[#4a4d52] sm:text-[10px]">progress</p>
+                    <p className="mt-1 font-mono text-lg font-medium text-[#d1d0c5] sm:text-xl">{myResult.score.progress}%</p>
+                  </div>
+                  <div className="rounded-xl bg-[#1e2228]/80 px-3 py-2.5 text-center sm:px-4 sm:py-3">
+                    <p className="text-[9px] font-medium uppercase tracking-widest text-[#4a4d52] sm:text-[10px]">time</p>
+                    <p className="mt-1 font-mono text-lg font-medium text-[#d1d0c5] sm:text-xl">{myResult.score.durationMs ? formatMs(myResult.score.durationMs) : "—"}</p>
+                  </div>
+                </div>
+              </>
+            ) : null}
+
+            {/* Leaderboard */}
+            <div className="mb-6 rounded-xl bg-[#1e2228]/60 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#646669" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+                  <path d="M12 20v-6M6 20V10M18 20v-4"/>
+                </svg>
+                <h3 className="text-xs font-medium uppercase tracking-widest text-[#646669]">leaderboard</h3>
+              </div>
+              <div className="space-y-0 text-sm">
+                {activeResults.map((result, i) => {
+                  const isMe = result.userId === user?.id;
+                  return (
+                    <div
+                      key={result.userId}
+                      className={`flex items-center justify-between rounded-lg px-3 py-2.5 transition-colors ${
+                        i < activeResults.length - 1 ? "mb-0.5" : ""
+                      } ${isMe ? "bg-[#e2b714]/8" : "hover:bg-[#2c2e33]/50"}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#2c2e33] text-center font-mono text-xs">
+                          {i < 3 ? placeMedals[i] : <span className="text-[#646669]">{result.place}</span>}
+                        </span>
+                        <span className={`font-medium ${isMe ? "text-[#e2b714]" : "text-[#d1d0c5]"}`}>
+                          {result.username}
+                          {isMe ? <span className="ml-1.5 text-[10px] text-[#e2b714]/60">(you)</span> : null}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs">
+                        <span className="font-mono text-[#d1d0c5]">
+                          {result.score.wpm} <span className="text-[#4a4d52]">wpm</span>
+                        </span>
+                        <span className={`font-mono ${
+                          result.score.accuracy >= 95 ? 'text-emerald-400/70' : result.score.accuracy >= 80 ? 'text-amber-400/70' : 'text-red-400/70'
+                        }`}>{result.score.accuracy}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+              <button
+                onClick={toggleReady}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all sm:px-5 sm:py-2.5 ${
+                  me?.ready
+                    ? "border border-emerald-500/30 bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25"
+                    : "animate-ready-pulse border border-[#e2b714]/40 bg-[#e2b714]/10 text-[#e2b714] hover:bg-[#e2b714]/20"
+                }`}
+              >
+                {me?.ready ? (
+                  <span className="flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5"><path d="M20 6 9 17l-5-5"/></svg>
+                    ready
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                    play again
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={leaveRoom}
+                className="flex items-center gap-2 rounded-xl border border-[#3a3d42] px-4 py-2 text-sm text-[#646669] transition-all hover:border-[#ca4754]/40 hover:bg-[#ca4754]/10 hover:text-[#ca4754] sm:px-5 sm:py-2.5"
+              >
+                leave room
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
