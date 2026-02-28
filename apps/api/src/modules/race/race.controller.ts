@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { attemptsQuerySchema, createTypingAttemptSchema, ok, raceTextQuerySchema } from "@typeracrer/shared";
+import { attemptsQuerySchema, createTypingAttemptSchema, ok, raceTextQuerySchema, type RaceTextOptions } from "@typeracrer/shared";
 import { HttpError } from "../../utils/http-error.js";
 import { createTypingAttempt, getRaceText, getUserAttempts, getUserRaceStats } from "./race.service.js";
 
@@ -16,7 +16,18 @@ export async function getRaceTextHandler(req: Request, res: Response): Promise<v
     throw new HttpError(400, "VALIDATION_ERROR", "Invalid mode query");
   }
 
-  const text = await getRaceText(parsed.data.mode, parsed.data.durationMs);
+  const options: RaceTextOptions = {};
+  if (parsed.data.themes !== undefined) {
+    options.themes = parsed.data.themes;
+  }
+  if (parsed.data.characterProfile !== undefined) {
+    options.characterProfile = parsed.data.characterProfile;
+  }
+  if (parsed.data.difficulty !== undefined) {
+    options.difficulty = parsed.data.difficulty;
+  }
+
+  const text = await getRaceText(parsed.data.mode, parsed.data.durationMs, Object.keys(options).length > 0 ? options : undefined);
   res.status(200).json(ok({ text }));
 }
 

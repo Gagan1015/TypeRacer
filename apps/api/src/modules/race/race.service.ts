@@ -8,6 +8,7 @@ import {
   type RaceMode,
   type RaceStats,
   type RaceText,
+  type RaceTextOptions,
   type TypingAttempt
 } from "@typeracrer/shared";
 import { RaceTextModel } from "../../db/models/race-text.model.js";
@@ -21,6 +22,7 @@ const GENERATED_TEXT_TTL_MS = 2 * 60 * 60 * 1000;
 const MAX_GENERATED_TEXTS = 500;
 const TIMED_PROMPT_CHARS_PER_MS = 1 / 46;
 const ADMIN_TEXT_CACHE_TTL_MS = 30_000;
+const MAX_RACE_TEXT_CHARS = 4_500;
 
 type CachedRaceText = RaceText & { createdAtMs: number };
 
@@ -119,7 +121,7 @@ function buildTimedPrompt(textPool: readonly RaceText[], targetChars: number): s
 }
 
 function targetCharsForDuration(durationMs: number): number {
-  return Math.max(260, Math.min(Math.round(durationMs * TIMED_PROMPT_CHARS_PER_MS), 4_500));
+  return Math.max(260, Math.min(Math.round(durationMs * TIMED_PROMPT_CHARS_PER_MS), MAX_RACE_TEXT_CHARS));
 }
 
 function createTimedRaceText(textPool: readonly RaceText[], mode: RaceMode, durationMs: number): RaceText {
@@ -220,7 +222,7 @@ function getModeDurationCapMs(mode: RaceMode, targetDurationMs?: number): number
   return null;
 }
 
-export async function getRaceText(mode: RaceMode, durationMs?: number): Promise<RaceText> {
+export async function getRaceText(mode: RaceMode, durationMs?: number, _options?: RaceTextOptions): Promise<RaceText> {
   if (mode === "timed_custom" && !durationMs) {
     throw new HttpError(400, "MISSING_DURATION", "Custom timed mode requires durationMs");
   }

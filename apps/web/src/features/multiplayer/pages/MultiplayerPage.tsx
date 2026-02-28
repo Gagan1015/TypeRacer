@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  areEquivalentTypingChars,
   computeTypingScore,
   isPresetTimedRaceMode,
   timedModeDurationMs,
@@ -299,7 +300,7 @@ export function MultiplayerPage() {
   const myResult = activeResults.find((r) => r.userId === user?.id);
   const iAmWinner = myResult?.place === 1;
 
-  const promptWindow = useMemo(() => buildPromptWindow(prompt, typed.length, 52, 3), [prompt, typed.length]);
+  const promptWindow = useMemo(() => buildPromptWindow(prompt, typed.length, 72, 3), [prompt, typed.length]);
 
   const createRoom = useCallback(() => {
     setErrorMessage("");
@@ -651,7 +652,9 @@ export function MultiplayerPage() {
 
                     let className = "text-[#646669] transition-colors duration-75";
                     if (typedChar !== undefined) {
-                      className = typedChar === char ? "text-[#d1d0c5]" : "text-[#ca4754] bg-[#ca4754]/10";
+                      className = areEquivalentTypingChars(char, typedChar)
+                        ? "text-[#d1d0c5]"
+                        : "text-[#ca4754] bg-[#ca4754]/10";
                     } else if (isCurrent && me?.place === null) {
                       className = "border-l-2 border-[#e2b714] pl-[1px] text-[#646669] animate-caret-blink";
                     }
@@ -797,4 +800,3 @@ export function MultiplayerPage() {
     </section>
   );
 }
-

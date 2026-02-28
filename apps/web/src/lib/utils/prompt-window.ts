@@ -13,36 +13,98 @@ export type PromptWindow = {
 export function buildPromptWindow(
   prompt: string,
   typedLength: number,
-  lineWidth = 52,
+  lineWidth = 72,
   visibleLineCount = 3
 ): PromptWindow {
   if (!prompt) {
     return { lines: [], visibleLines: [], visibleStartLine: 0 };
   }
 
-  const maxWidth = Math.max(lineWidth, 16);
+  const maxWidth = Math.max(lineWidth, 20);
   const lines: PromptLine[] = [];
+  const minSentenceWidth = Math.max(Math.floor(maxWidth * 0.55), 18);
+
+  function findSentenceBreak(from: number): number | null {
+    // Never exceed maxWidth — search backwards from the hard limit
+    const searchEnd = Math.min(from + maxWidth, prompt.length - 1);
+    const searchStart = Math.min(from + minSentenceWidth, searchEnd);
+
+    for (let index = searchEnd; index >= searchStart; index -= 1) {
+      const char = prompt[index];
+      if (!char || !/[.!?]/.test(char)) {
+        continue;
+      }
+
+      const next = prompt[index + 1];
+      if (!next || /\s/.test(next)) {
+        return index + 1;
+      }
+    }
+
+    return null;
+  }
 
   let start = 0;
   while (start < prompt.length) {
-    // If the remaining text fits on one line, take it all
     if (start + maxWidth >= prompt.length) {
       lines.push({ start, end: prompt.length, text: prompt.slice(start, prompt.length) });
       break;
     }
 
-    // Look for the last space within the allowed width so we don't split a word
     let end = start + maxWidth;
-    const lastSpace = prompt.lastIndexOf(" ", end);
+    const sentenceBreak = findSentenceBreak(start);
 
-    if (lastSpace > start) {
-      // Break right after the space (space stays at end of current line)
-      end = lastSpace + 1;
+    if (sentenceBreak && sentenceBreak > start) {
+      end = sentenceBreak;
+    } else {
+      let lastWhitespace = -1;
+
+      // Prefer breaking at whitespace so words stay together.
+      for (let index = end; index > start; index -= 1) {
+        const char = prompt[index];
+        if (char && /\s/.test(char)) {
+          lastWhitespace = index;
+          break;
+        }
+      }
+
+      if (lastWhitespace > start) {
+        // Break before whitespace so line width is not wasted on trailing spaces.
+        end = lastWhitespace;
+      }
     }
-    // else: no space found in range — force-break at maxWidth (very long word)
+
+    // Final guard: never break in the middle of a word.
+    // If the character at `end` is non-whitespace and so is the one before it,
+    // search backwards for the nearest word boundary.
+    if (
+      end < prompt.length &&
+      end > start &&
+      prompt[end] !== undefined && !/\s/.test(prompt[end]!) &&
+      prompt[end - 1] !== undefined && !/\s/.test(prompt[end - 1]!)
+    ) {
+      let wordBoundary = -1;
+      for (let index = end - 1; index > start; index -= 1) {
+        if (/\s/.test(prompt[index]!)) {
+          wordBoundary = index;
+          break;
+        }
+      }
+      if (wordBoundary > start) {
+        end = wordBoundary;
+      }
+    }
 
     lines.push({ start, end, text: prompt.slice(start, end) });
+
     start = end;
+    while (start < prompt.length) {
+      const char = prompt[start];
+      if (!char || !/\s/.test(char)) {
+        break;
+      }
+      start += 1;
+    }
   }
 
   const caret = Math.max(0, Math.min(typedLength, prompt.length));
@@ -56,10 +118,8 @@ export function buildPromptWindow(
     }
   }
 
-  // Shift up only after entering line 3+ (i.e., after completing line 2).
   const visibleStartLine = Math.max(0, currentLineIndex - 1);
   const visibleLines = lines.slice(visibleStartLine, visibleStartLine + visibleLineCount);
 
   return { lines, visibleLines, visibleStartLine };
 }
-

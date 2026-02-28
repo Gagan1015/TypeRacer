@@ -63,27 +63,27 @@ export function AdminPage() {
   return (
     <section className="mx-auto flex w-full max-w-6xl flex-col">
       {/* Header */}
-      <div className="flex items-end justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-[#d1d0c5]">
+          <h1 className="font-display text-xl font-semibold tracking-tight text-[#d1d0c5] sm:text-2xl">
             Admin Panel
           </h1>
           <p className="mt-1 text-xs text-[#646669]">
             Manage users, texts, reports &amp; audit logs
           </p>
         </div>
-        <span className="rounded-md border border-[#e2b714]/30 bg-[#e2b714]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[#e2b714]">
+        <span className="w-fit rounded-md border border-[#e2b714]/30 bg-[#e2b714]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[#e2b714]">
           admin
         </span>
       </div>
 
       {/* Tab bar */}
-      <div className="mt-5 flex items-center gap-1 self-start rounded-xl bg-[#2c2e33]/70 px-2 py-1.5">
+      <div className="mt-5 flex flex-wrap items-center gap-1 self-start rounded-xl bg-[#2c2e33]/70 px-2 py-1.5">
         {tabs.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
-            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors ${
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors sm:text-sm ${
               tab === t.key
                 ? "bg-[#e2b714]/15 text-[#e2b714]"
                 : "text-[#646669] hover:text-[#d1d0c5]"

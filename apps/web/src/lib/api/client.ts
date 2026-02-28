@@ -1,5 +1,6 @@
 import {
   type CreateTypingAttemptInput,
+  type RaceTextOptions,
   type LeaderboardSeason,
   type LoginInput,
   type ProfileUpdateInput,
@@ -102,10 +103,21 @@ export async function updateMyProfile(input: ProfileUpdateInput): Promise<Profil
   return data.profile;
 }
 
-export async function getRaceText(mode: RaceMode, durationMs?: number): Promise<RaceText> {
+export async function getRaceText(mode: RaceMode, durationMs?: number, options?: RaceTextOptions): Promise<RaceText> {
   const params = new URLSearchParams({ mode });
   if (durationMs && Number.isFinite(durationMs)) {
     params.set("durationMs", String(Math.round(durationMs)));
+  }
+  if (options?.themes?.length) {
+    for (const theme of options.themes) {
+      params.append("themes", theme);
+    }
+  }
+  if (options?.characterProfile) {
+    params.set("characterProfile", options.characterProfile);
+  }
+  if (options?.difficulty) {
+    params.set("difficulty", options.difficulty);
   }
   const data = await request<{ text: RaceText }>(`/api/race/text?${params.toString()}`);
   return data.text;

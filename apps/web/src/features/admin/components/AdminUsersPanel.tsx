@@ -221,12 +221,13 @@ export function AdminUsersPanel() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by username or email..."
-          className="w-full max-w-md rounded-lg bg-[#1e2228] px-4 py-2.5 text-sm text-[#d1d0c5] outline-none placeholder:text-[#4a4d52] focus:ring-1 focus:ring-[#e2b714]/30"
+          className="w-full rounded-lg bg-[#1e2228] px-4 py-2.5 text-sm text-[#d1d0c5] outline-none placeholder:text-[#4a4d52] focus:ring-1 focus:ring-[#e2b714]/30 md:max-w-md"
         />
       </div>
 
       <div className="overflow-hidden rounded-xl border border-[#3a3d42]/60 bg-[#1e2228]/60">
-        <div className="grid grid-cols-[1fr_1.2fr_5rem_5rem_8rem] gap-2 border-b border-[#3a3d42]/60 px-4 py-2.5 text-xs uppercase tracking-widest text-[#4a4d52]">
+        {/* Desktop table header */}
+        <div className="hidden grid-cols-[1fr_1.2fr_5rem_5rem_8rem] gap-2 border-b border-[#3a3d42]/60 px-4 py-2.5 text-xs uppercase tracking-widest text-[#4a4d52] md:grid">
           <span>username</span>
           <span>email</span>
           <span className="text-center">role</span>
@@ -245,15 +246,30 @@ export function AdminUsersPanel() {
             <button
               key={user.id}
               onClick={() => setSelectedUserId(user.id)}
-              className={`grid w-full grid-cols-[1fr_1.2fr_5rem_5rem_8rem] items-center gap-2 px-4 py-2.5 text-left text-sm transition-colors hover:bg-[#2c2e33]/40 ${
+              className={`w-full px-4 py-3 text-left transition-colors hover:bg-[#2c2e33]/40 md:py-2.5 ${
                 i < (usersQuery.data?.length ?? 0) - 1 ? "border-b border-[#3a3d42]/30" : ""
               }`}
             >
-              <span className="truncate font-mono text-[#d1d0c5]">{user.username}</span>
-              <span className="truncate text-[#646669]">{user.email}</span>
-              <span className="text-center"><RoleBadge role={user.role} /></span>
-              <span className="text-center"><BannedBadge banned={user.isBanned} /></span>
-              <span className="text-right text-xs text-[#646669]">{formatDate(user.createdAt)}</span>
+              {/* Mobile card layout */}
+              <div className="flex flex-col gap-1 md:hidden">
+                <div className="flex items-center justify-between">
+                  <span className="truncate font-mono text-sm text-[#d1d0c5]">{user.username}</span>
+                  <div className="flex items-center gap-2">
+                    <RoleBadge role={user.role} />
+                    <BannedBadge banned={user.isBanned} />
+                  </div>
+                </div>
+                <span className="truncate text-xs text-[#646669]">{user.email}</span>
+                <span className="text-[10px] text-[#4a4d52]">{formatDate(user.createdAt)}</span>
+              </div>
+              {/* Desktop grid layout */}
+              <div className="hidden grid-cols-[1fr_1.2fr_5rem_5rem_8rem] items-center gap-2 text-sm md:grid">
+                <span className="truncate font-mono text-[#d1d0c5]">{user.username}</span>
+                <span className="truncate text-[#646669]">{user.email}</span>
+                <span className="text-center"><RoleBadge role={user.role} /></span>
+                <span className="text-center"><BannedBadge banned={user.isBanned} /></span>
+                <span className="text-right text-xs text-[#646669]">{formatDate(user.createdAt)}</span>
+              </div>
             </button>
           ))
         )}

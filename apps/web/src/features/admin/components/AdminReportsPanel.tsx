@@ -228,13 +228,13 @@ function ReportRow({ report, onClick }: { report: AdminReport; onClick: () => vo
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center justify-between border-b border-[#3a3d42]/30 px-4 py-3 text-left transition-colors hover:bg-[#2c2e33]/30"
+      className="flex w-full flex-col gap-1.5 border-b border-[#3a3d42]/30 px-4 py-3 text-left transition-colors hover:bg-[#2c2e33]/30 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-start gap-3 sm:items-center">
         <StatusBadge status={report.status} />
         <div className="min-w-0">
-          <p className="truncate text-sm text-[#d1d0c5]">{report.summary}</p>
-          <div className="mt-0.5 flex items-center gap-2 text-[10px] text-[#4a4d52]">
+          <p className="line-clamp-1 text-sm text-[#d1d0c5]">{report.summary}</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] text-[#4a4d52] sm:gap-2">
             <span>{report.source}</span>
             <span>&middot;</span>
             <span>{report.targetType}</span>
@@ -247,7 +247,7 @@ function ReportRow({ report, onClick }: { report: AdminReport; onClick: () => vo
           </div>
         </div>
       </div>
-      <span className="shrink-0 text-xs text-[#646669]">{formatDate(report.createdAt)}</span>
+      <span className="shrink-0 pl-14 text-xs text-[#646669] sm:pl-0">{formatDate(report.createdAt)}</span>
     </button>
   );
 }

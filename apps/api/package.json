@@ -10,7 +10,8 @@
     "lint": "echo api lint pending",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsx --test src/**/*.test.ts",
-    "promote-admin": "tsx src/scripts/promote-admin.ts"
+    "promote-admin": "tsx src/scripts/promote-admin.ts",
+    "script:backfill-text-tags": "tsx src/scripts/backfill-race-text-tags.ts"
   },
   "dependencies": {
     "@typeracrer/shared": "workspace:*",

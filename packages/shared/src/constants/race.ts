@@ -5,6 +5,15 @@ export const raceModes = [...presetTimedRaceModes, "timed_custom", "fixed"] as c
 export type RaceMode = (typeof raceModes)[number];
 export type PresetTimedRaceMode = (typeof presetTimedRaceModes)[number];
 
+export const raceThemes = ["random", "general", "futuristic", "medieval", "historical", "ww2", "sci_fi"] as const;
+export type RaceTheme = (typeof raceThemes)[number];
+
+export const characterProfiles = ["letters", "letters_numbers", "letters_symbols", "all"] as const;
+export type CharacterProfile = (typeof characterProfiles)[number];
+
+export const raceDifficulties = ["easy", "normal", "hard"] as const;
+export type RaceDifficulty = (typeof raceDifficulties)[number];
+
 export const timedModeDurationMs: Record<PresetTimedRaceMode, number> = {
   timed_15: 15_000,
   timed_30: 30_000,

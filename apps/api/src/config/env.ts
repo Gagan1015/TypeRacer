@@ -10,6 +10,19 @@ const workspaceRootEnvPath = path.resolve(currentDir, "../../../../.env");
 dotenv.config({ path: apiRootEnvPath });
 dotenv.config({ path: workspaceRootEnvPath });
 
+const booleanFromEnv = z.preprocess((value) => {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["1", "true", "yes", "on"].includes(normalized)) {
+      return true;
+    }
+    if (["0", "false", "no", "off", ""].includes(normalized)) {
+      return false;
+    }
+  }
+  return value;
+}, z.boolean());
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   MONGO_URI: z.string().min(1),
@@ -18,7 +31,11 @@ const envSchema = z.object({
   ACCESS_TOKEN_SECRET: z.string().min(32),
   REFRESH_TOKEN_SECRET: z.string().min(32),
   ACCESS_TOKEN_TTL: z.string().default("15m"),
-  REFRESH_TOKEN_TTL: z.string().default("7d")
+  REFRESH_TOKEN_TTL: z.string().default("7d"),
+  RACE_TEXT_OPTIONS_ENABLED: booleanFromEnv.default(false),
+  RACE_TEXT_PREFETCH_ENABLED: booleanFromEnv.default(false),
+  RACE_TEXT_SEGMENT_CACHE_ENABLED: booleanFromEnv.default(false),
+  RACE_CLIP_ANIMATION_V2: booleanFromEnv.default(false)
 });
 
 const parsed = envSchema.safeParse(process.env);

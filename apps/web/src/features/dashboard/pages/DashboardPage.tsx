@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { computeTypingScore, isPresetTimedRaceMode, timedModeDurationMs, type RaceMode } from "@typeracrer/shared";
+import { areEquivalentTypingChars, computeTypingScore, isPresetTimedRaceMode, timedModeDurationMs, type RaceMode } from "@typeracrer/shared";
 import { createTypingAttempt, getMyRaceStats, getMyTypingAttempts, getRaceText } from "@/lib/api/client";
 import { clampRaceDurationMs, parseDurationToMs } from "@/lib/utils/duration";
 import { buildPromptWindow } from "@/lib/utils/prompt-window";
@@ -45,6 +45,9 @@ export function DashboardPage() {
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const finishingRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const measureRef = useRef<HTMLSpanElement | null>(null);
+  const [charsPerLine, setCharsPerLine] = useState(48);
 
   const [mode, setMode] = useState<RaceMode>("timed_30");
   const [customDurationMs, setCustomDurationMs] = useState(45_000);
@@ -71,7 +74,11 @@ export function DashboardPage() {
   const textQuery = useQuery({
     queryKey: ["race", "text", mode, selectedDurationMs, textVersion],
     queryFn: () => getRaceText(mode, selectedDurationMs ?? undefined),
-    staleTime: 0
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+    retry: false
   });
 
   const attemptsQuery = useQuery({
@@ -105,6 +112,11 @@ export function DashboardPage() {
     setLastSummary("");
     requestAnimationFrame(() => inputRef.current?.focus());
   }, []);
+
+  const newText = useCallback(() => {
+    setTextVersion((v) => v + 1);
+    resetRound();
+  }, [resetRound]);
 
   const finishRace = useCallback(
     (durationMsOverride?: number) => {
@@ -143,12 +155,88 @@ export function DashboardPage() {
     [mode, startedAt, status, submitAttemptMutation, textQuery.data, timedLimitMs, typed]
   );
 
+  // ── Global keyboard shortcuts ──
+  useEffect(() => {
+    let tabHeld = false;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      // Track Tab held state
+      if (e.key === "Tab") {
+        tabHeld = true;
+
+        // Don't prevent default immediately — wait to see if Enter follows
+        // But we do preventDefault to stop focus moving away
+        if (status !== "running") {
+          e.preventDefault();
+        }
+        return;
+      }
+
+      // Tab + Enter → new text
+      if (e.key === "Enter" && tabHeld) {
+        e.preventDefault();
+        if (status !== "running" && !textQuery.isFetching) {
+          newText();
+        }
+        return;
+      }
+
+      // Escape → end test (running) or dismiss results (finished)
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (status === "running") {
+          finishRace();
+        } else if (status === "finished") {
+          resetRound();
+        }
+        return;
+      }
+    }
+
+    function handleKeyUp(e: KeyboardEvent) {
+      if (e.key === "Tab") {
+        // Tab released without Enter → restart same text
+        if (tabHeld && status !== "running") {
+          resetRound();
+        }
+        tabHeld = false;
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keyup", handleKeyUp);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [status, finishRace, resetRound, newText, textQuery.isFetching]);
+
   useEffect(() => {
     if (!prompt || status === "running") {
       return;
     }
     inputRef.current?.focus();
   }, [prompt, status]);
+
+  // Measure how many monospace chars fit in the container
+  useEffect(() => {
+    function measure() {
+      const container = containerRef.current;
+      const span = measureRef.current;
+      if (!container || !span) return;
+      const containerWidth = container.clientWidth - 16; // account for px-2 padding
+      const totalWidth = span.getBoundingClientRect().width;
+      const charWidth = totalWidth / 10; // span contains 10 chars
+      if (charWidth > 0) {
+        setCharsPerLine(Math.max(Math.floor(containerWidth / charWidth) - 2, 20));
+      }
+    }
+    measure();
+    // Re-measure once fonts are fully loaded (avoids wrong metrics from fallback font)
+    void document.fonts.ready.then(() => measure());
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
 
   useEffect(() => {
     if (status !== "running" || !startedAt || !timedLimitMs) {
@@ -198,7 +286,7 @@ export function DashboardPage() {
   const remainingMs = timedLimitMs ? Math.max(timedLimitMs - elapsedMs, 0) : 0;
   const showResults = status === "finished" && previewScore;
 
-  const promptWindow = useMemo(() => buildPromptWindow(prompt, typed.length, 52, 3), [prompt, typed.length]);
+  const promptWindow = useMemo(() => buildPromptWindow(prompt, typed.length, charsPerLine, 3), [prompt, typed.length, charsPerLine]);
 
   function selectMode(nextMode: RaceMode): void {
     if (status === "running") {
@@ -231,24 +319,24 @@ export function DashboardPage() {
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col items-center">
       {/* ── Mode selector bar (Monkeytype style) ── */}
-      <div className="mt-2 flex items-center justify-center gap-1 rounded-xl bg-[#2c2e33]/70 px-3 py-2">
+      <div className="mt-2 flex flex-wrap items-center justify-center gap-1 rounded-xl bg-[#2c2e33]/70 px-3 py-2">
         <span className="mr-1 text-sm text-[#646669]">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="inline-block h-4 w-4 align-[-2px]"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </span>
         <span className="mr-2 text-sm text-[#646669]">time</span>
-        <span className="mx-1 h-4 w-px bg-[#3a3d42]" />
+        <span className="mx-1 hidden h-4 w-px bg-[#3a3d42] sm:block" />
         {timedOptions.map((option) => (
           <button
             key={option.value}
             onClick={() => selectMode(option.value)}
-            className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+            className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
               mode === option.value ? "text-[#e2b714]" : "text-[#646669] hover:text-[#d1d0c5]"
             }`}
           >
             {option.label}
           </button>
         ))}
-        <span className="mx-1 h-4 w-px bg-[#3a3d42]" />
+        <span className="mx-1 hidden h-4 w-px bg-[#3a3d42] sm:block" />
         {/* Custom duration button */}
         <button
           onClick={() => {
@@ -257,31 +345,31 @@ export function DashboardPage() {
             setCustomDurationError("");
             setIsCustomModalOpen(true);
           }}
-          className={`rounded-md px-2 py-1 text-sm font-medium transition-colors ${
+          className={`rounded-md px-2 py-1 text-xs font-medium transition-colors sm:text-sm ${
             mode === "timed_custom" ? "text-[#e2b714]" : "text-[#646669] hover:text-[#d1d0c5]"
           }`}
           title="custom duration"
         >
           {mode === "timed_custom" ? `${Math.round(customDurationMs / 1000)}s` : "custom"}
         </button>
-        <span className="mx-1 h-4 w-px bg-[#3a3d42]" />
+        <span className="mx-1 hidden h-4 w-px bg-[#3a3d42] sm:block" />
         {/* Fixed mode */}
         <button
           onClick={() => selectMode("fixed")}
-          className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors sm:px-3 sm:text-sm ${
             mode === "fixed" ? "text-[#e2b714]" : "text-[#646669] hover:text-[#d1d0c5]"
           }`}
         >
           fixed
         </button>
-        <span className="mx-1 h-4 w-px bg-[#3a3d42]" />
+        <span className="mx-1 hidden h-4 w-px bg-[#3a3d42] sm:block" />
         {/* Refresh button */}
         <button
           onClick={() => {
-            setTextVersion((v) => v + 1);
-            resetRound();
+            if (textQuery.isFetching) return;
+            newText();
           }}
-          disabled={status === "running"}
+          disabled={status === "running" || textQuery.isFetching}
           className="rounded-md p-1 text-[#646669] transition-colors hover:text-[#d1d0c5] disabled:opacity-40"
           title="new text"
         >
@@ -307,10 +395,19 @@ export function DashboardPage() {
 
       {/* ── Typing area (main focus) ── */}
       <div
-        className="relative mt-10 w-full cursor-text px-2"
+        ref={containerRef}
+        className="relative mt-10 w-full cursor-text overflow-hidden px-2"
         onClick={() => inputRef.current?.focus()}
         style={{ minHeight: "220px" }}
       >
+        {/* Hidden measurement span for monospace char width */}
+        <span
+          ref={measureRef}
+          className="pointer-events-none invisible absolute font-mono text-[clamp(1.4rem,2.4vw,2rem)] tracking-wide"
+          aria-hidden="true"
+        >
+          MMMMMMMMMM
+        </span>
         {textQuery.isLoading ? (
           <div className="flex items-center justify-center py-16">
             <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[#646669]" />
@@ -321,9 +418,9 @@ export function DashboardPage() {
         ) : null}
 
         {!textQuery.isLoading && !textQuery.isError ? (
-          <div className="space-y-2 font-mono text-[clamp(1.4rem,2.4vw,2rem)] leading-[1.85] tracking-wide">
+          <div className="mx-auto w-fit space-y-2 font-mono text-[clamp(1.4rem,2.4vw,2rem)] leading-[1.85] tracking-wide">
             {promptWindow.visibleLines.map((line, lineIndex) => (
-              <p key={`${line.start}-${line.end}-${lineIndex}`} className="text-[#646669]">
+              <p key={`${line.start}-${line.end}-${lineIndex}`} className="whitespace-nowrap text-[#646669]">
                 {line.text.split("").map((char, index) => {
                   const globalIndex = line.start + index;
                   const typedChar = typed[globalIndex];
@@ -331,7 +428,9 @@ export function DashboardPage() {
 
                   let className = "text-[#646669] transition-colors duration-75";
                   if (typedChar !== undefined) {
-                    className = typedChar === char ? "text-[#d1d0c5]" : "text-[#ca4754] bg-[#ca4754]/10";
+                    className = areEquivalentTypingChars(char, typedChar)
+                      ? "text-[#d1d0c5]"
+                      : "text-[#ca4754] bg-[#ca4754]/10";
                   } else if (isCurrent) {
                     className = "border-l-2 border-[#e2b714] pl-[1px] text-[#646669] animate-caret-blink";
                   }
@@ -414,31 +513,57 @@ export function DashboardPage() {
           ) : null}
           <div className="mt-4 flex justify-center">
             <button
-              onClick={() => {
-                setTextVersion((v) => v + 1);
-                resetRound();
-              }}
+              onClick={newText}
               className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-[#646669] transition-colors hover:text-[#d1d0c5]"
             >
               next test
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
+            <button
+              onClick={resetRound}
+              className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm text-[#646669] transition-colors hover:text-[#d1d0c5]"
+            >
+              restart
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+            </button>
           </div>
         </div>
       ) : null}
 
-      {/* ── Keyboard shortcuts hint (Monkeytype style) ── */}
+      {/* ── Keyboard shortcuts hint (Monkeytype style, desktop only) ── */}
       {status !== "running" && !showResults ? (
-        <div className="mt-16 flex flex-col items-center gap-2 text-[#404347]">
+        <div className="mt-16 hidden flex-col items-center gap-2 text-[#404347] md:flex">
           <p className="flex items-center gap-2 text-xs">
             <kbd className="rounded bg-[#2c2e33] px-1.5 py-0.5 font-mono text-[10px] text-[#646669]">tab</kbd>
             <span>+</span>
             <kbd className="rounded bg-[#2c2e33] px-1.5 py-0.5 font-mono text-[10px] text-[#646669]">enter</kbd>
-            <span className="ml-1">- restart test</span>
+            <span className="ml-1">- new text</span>
+          </p>
+          <p className="flex items-center gap-2 text-xs">
+            <kbd className="rounded bg-[#2c2e33] px-1.5 py-0.5 font-mono text-[10px] text-[#646669]">tab</kbd>
+            <span className="ml-1">- restart same text</span>
           </p>
           <p className="flex items-center gap-2 text-xs">
             <kbd className="rounded bg-[#2c2e33] px-1.5 py-0.5 font-mono text-[10px] text-[#646669]">esc</kbd>
-            <span className="ml-1">- end test</span>
+            <span className="ml-1">- end test early</span>
+          </p>
+        </div>
+      ) : null}
+      {showResults ? (
+        <div className="mt-6 hidden flex-col items-center gap-2 text-[#404347] md:flex">
+          <p className="flex items-center gap-2 text-xs">
+            <kbd className="rounded bg-[#2c2e33] px-1.5 py-0.5 font-mono text-[10px] text-[#646669]">tab</kbd>
+            <span>+</span>
+            <kbd className="rounded bg-[#2c2e33] px-1.5 py-0.5 font-mono text-[10px] text-[#646669]">enter</kbd>
+            <span className="ml-1">- next test</span>
+          </p>
+          <p className="flex items-center gap-2 text-xs">
+            <kbd className="rounded bg-[#2c2e33] px-1.5 py-0.5 font-mono text-[10px] text-[#646669]">tab</kbd>
+            <span className="ml-1">- restart same text</span>
+          </p>
+          <p className="flex items-center gap-2 text-xs">
+            <kbd className="rounded bg-[#2c2e33] px-1.5 py-0.5 font-mono text-[10px] text-[#646669]">esc</kbd>
+            <span className="ml-1">- dismiss results</span>
           </p>
         </div>
       ) : null}
@@ -551,4 +676,3 @@ export function DashboardPage() {
     </section>
   );
 }
-

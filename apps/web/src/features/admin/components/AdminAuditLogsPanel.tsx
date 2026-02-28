@@ -55,20 +55,20 @@ function AuditLogRow({ log }: { log: AdminAuditLog }) {
   const colorClass = actionColors[log.action] ?? "border-[#646669]/30 bg-[#646669]/10 text-[#646669]";
 
   return (
-    <div className="flex items-center justify-between border-b border-[#3a3d42]/30 px-4 py-3 transition-colors hover:bg-[#2c2e33]/20">
-      <div className="flex items-center gap-3">
-        <span className="text-[#646669]">
+    <div className="flex flex-col gap-1.5 border-b border-[#3a3d42]/30 px-4 py-3 transition-colors hover:bg-[#2c2e33]/20 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+      <div className="flex items-start gap-3 sm:items-center">
+        <span className="mt-0.5 text-[#646669] sm:mt-0">
           {entityTypeIcons[log.entityType] ?? null}
         </span>
-        <div>
-          <div className="flex items-center gap-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <span className={`rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase ${colorClass}`}>
               {log.action.replace(/_/g, " ")}
             </span>
             <span className="font-mono text-xs text-[#646669]">{log.entityType}/{log.entityId.slice(0, 10)}</span>
           </div>
           {Object.keys(log.metadata).length > 0 ? (
-            <p className="mt-0.5 font-mono text-[10px] text-[#4a4d52]">
+            <p className="mt-0.5 break-all font-mono text-[10px] text-[#4a4d52]">
               {Object.entries(log.metadata)
                 .filter(([, v]) => v !== null && v !== undefined)
                 .map(([k, v]) => `${k}=${String(v)}`)
@@ -77,7 +77,7 @@ function AuditLogRow({ log }: { log: AdminAuditLog }) {
           ) : null}
         </div>
       </div>
-      <div className="shrink-0 text-right">
+      <div className="shrink-0 pl-6 sm:pl-0 sm:text-right">
         <p className="text-xs text-[#646669]">{formatDate(log.createdAt)}</p>
         <p className="mt-0.5 font-mono text-[10px] text-[#4a4d52]">by {log.actorUserId.slice(0, 10)}</p>
       </div>

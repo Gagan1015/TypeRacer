@@ -1,4 +1,10 @@
-import type { RaceMode } from "../constants/race.js";
+import type { CharacterProfile, RaceDifficulty, RaceMode, RaceTheme } from "../constants/race.js";
+
+export type RaceTextOptions = {
+  themes?: RaceTheme[];
+  characterProfile?: CharacterProfile;
+  difficulty?: RaceDifficulty;
+};
 
 export type TypingScore = {
   wpm: number;
@@ -36,4 +42,3 @@ export type RaceStats = {
   bestAccuracy: number;
   personalBestByMode: Partial<Record<RaceMode, number>>;
 };
-
