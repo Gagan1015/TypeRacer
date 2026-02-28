@@ -17,6 +17,8 @@ type AuthUser = {
   email: string;
   username: string;
   role: "user" | "admin";
+  avatarUrl: string | null;
+  provider: "local" | "google" | "github";
 };
 
 function sessionExpiresAt(): Date {
@@ -55,12 +57,16 @@ function publicUser(user: {
   email: string;
   username: string;
   role: "user" | "admin";
+  avatarUrl?: string | null;
+  provider?: "local" | "google" | "github";
 }): AuthUser {
   return {
     id: user._id.toString(),
     email: user.email,
     username: user.username,
-    role: user.role
+    role: user.role,
+    avatarUrl: user.avatarUrl ?? null,
+    provider: user.provider ?? "local"
   };
 }
 
@@ -91,6 +97,7 @@ export async function signup(input: SignupInput): Promise<{ user: AuthUser; toke
     email: input.email,
     username: input.username,
     passwordHash,
+    provider: "local",
     role: "user",
     sessions: []
   });
@@ -114,6 +121,14 @@ export async function login(input: LoginInput): Promise<{ user: AuthUser; tokens
   }
   if (user.isBanned) {
     throw new HttpError(403, "ACCOUNT_BANNED", "Account is banned");
+  }
+
+  if (!user.passwordHash) {
+    throw new HttpError(
+      401,
+      "OAUTH_ACCOUNT",
+      `This account uses ${user.provider} sign-in. Please use the ${user.provider} button to log in.`
+    );
   }
 
   const passwordOk = await argon2.verify(user.passwordHash, input.password);

@@ -3,6 +3,7 @@ import { Route, Routes, useNavigate } from "react-router-dom";
 import { AppShell } from "./layout/AppShell";
 import { LoginPage } from "@/features/auth/pages/LoginPage";
 import { SignupPage } from "@/features/auth/pages/SignupPage";
+import { OAuthCallbackPage } from "@/features/auth/pages/OAuthCallbackPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
 import { AdminPage } from "@/features/admin/pages/AdminPage";
 import { LeaderboardPage } from "@/features/leaderboard/pages/LeaderboardPage";
@@ -77,6 +78,7 @@ export function AppRouter() {
           </GuestRoute>
         }
       />
+      <Route path="/auth/callback" element={<OAuthCallbackPage />} />
       <Route
         path="/"
         element={
@@ -96,3 +98,4 @@ export function AppRouter() {
     </Routes>
   );
 }
+

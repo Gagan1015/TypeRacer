@@ -6,6 +6,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { env } from "./config/env.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
+import { oauthRouter } from "./modules/auth/oauth.routes.js";
 import { profileRouter } from "./modules/profile/profile.routes.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
 import { healthRouter } from "./modules/health/health.routes.js";
@@ -45,6 +46,7 @@ export function createApp(): Express {
 
   app.use("/api/health", healthRouter);
   app.use("/api/auth", authRouter);
+  app.use("/api/auth", oauthRouter);
   app.use("/api/profile", profileRouter);
   app.use("/api/admin", adminRouter);
   app.use("/api/race", raceRouter);

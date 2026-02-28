@@ -35,7 +35,22 @@ const envSchema = z.object({
   RACE_TEXT_OPTIONS_ENABLED: booleanFromEnv.default(false),
   RACE_TEXT_PREFETCH_ENABLED: booleanFromEnv.default(false),
   RACE_TEXT_SEGMENT_CACHE_ENABLED: booleanFromEnv.default(false),
-  RACE_CLIP_ANIMATION_V2: booleanFromEnv.default(false)
+  RACE_CLIP_ANIMATION_V2: booleanFromEnv.default(false),
+
+  // OAuth — optional; OAuth routes return 501 when not configured
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_CALLBACK_URL: z
+    .string()
+    .url()
+    .default("http://localhost:4000/api/auth/google/callback"),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  GITHUB_CALLBACK_URL: z
+    .string()
+    .url()
+    .default("http://localhost:4000/api/auth/github/callback"),
+  OAUTH_FRONTEND_URL: z.string().default("http://localhost:5173")
 });
 
 const parsed = envSchema.safeParse(process.env);

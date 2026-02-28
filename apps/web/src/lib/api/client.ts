@@ -53,6 +53,8 @@ export type AuthUser = {
   email: string;
   username: string;
   role: "user" | "admin";
+  avatarUrl: string | null;
+  provider: "local" | "google" | "github";
 };
 
 export type ProfilePayload = {
