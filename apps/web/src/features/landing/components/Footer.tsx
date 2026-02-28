@@ -42,7 +42,7 @@ export function Footer() {
                 Links
               </span>
               <a
-                href="https://github.com"
+                href="https://github.com/Gagan1015"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-[#646669] transition-colors hover:text-[#d1d0c5]"
@@ -50,12 +50,28 @@ export function Footer() {
                 GitHub
               </a>
               <a
-                href="https://twitter.com"
+                href="https://x.com/Gagansa47600331"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-[#646669] transition-colors hover:text-[#d1d0c5]"
               >
-                Twitter
+                X / Twitter
+              </a>
+              <a
+                href="https://www.linkedin.com/in/gagan-kumar1510/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-[#646669] transition-colors hover:text-[#d1d0c5]"
+              >
+                LinkedIn
+              </a>
+              <a
+                href="https://www.gagankumar.me/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-[#646669] transition-colors hover:text-[#d1d0c5]"
+              >
+                Portfolio
               </a>
             </div>
           </div>

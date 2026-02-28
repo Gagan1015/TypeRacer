@@ -4,6 +4,7 @@ import { AdminUsersPanel } from "../components/AdminUsersPanel";
 import { AdminTextsPanel } from "../components/AdminTextsPanel";
 import { AdminReportsPanel } from "../components/AdminReportsPanel";
 import { AdminAuditLogsPanel } from "../components/AdminAuditLogsPanel";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 
 type AdminTab = "users" | "texts" | "reports" | "audit";
 
@@ -47,6 +48,7 @@ const tabs: Array<{ key: AdminTab; label: string; icon: React.ReactNode }> = [
 ];
 
 export function AdminPage() {
+  useDocumentTitle("Admin");
   const user = useAuthStore((s) => s.user);
   const [tab, setTab] = useState<AdminTab>("reports");
 

@@ -1,0 +1,16 @@
+{
+    "name": "TypeRacrer — Competitive Typing Races",
+    "short_name": "TypeRacrer",
+    "description": "Race against the clock or challenge friends. Track your WPM, climb leaderboards, and improve your typing speed.",
+    "start_url": "/",
+    "display": "standalone",
+    "theme_color": "#25282f",
+    "background_color": "#25282f",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}

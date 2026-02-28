@@ -1,19 +1,89 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <title>TypeRacrer</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
 
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Primary Meta -->
+  <title>TypeRacrer — Competitive Typing Races</title>
+  <meta name="description"
+    content="Race against the clock or challenge friends in real-time typing races. Track your WPM, climb global leaderboards, and prove you're the fastest typist." />
+  <meta name="keywords"
+    content="typing test, typing race, WPM, typing speed, multiplayer typing game, competitive typing, type racer, keyboard speed" />
+  <meta name="author" content="TypeRacrer" />
+  <meta name="theme-color" content="#25282f" />
+
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://typeracer.gagankumar.me" />
+
+  <!-- Favicon & Icons -->
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="/site.webmanifest" />
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://typeracer.gagankumar.me" />
+  <meta property="og:title" content="TypeRacrer — Competitive Typing Races" />
+  <meta property="og:description"
+    content="Race against the clock or challenge friends. Track your WPM, climb leaderboards, and improve your typing speed." />
+  <meta property="og:image" content="https://typeracer.gagankumar.me/og-image.png" />
+  <meta property="og:site_name" content="TypeRacrer" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="TypeRacrer — Competitive Typing Races" />
+  <meta name="twitter:description"
+    content="Race against the clock or challenge friends. Track your WPM, climb leaderboards, and prove you're the fastest." />
+  <meta name="twitter:image" content="https://typeracer.gagankumar.me/og-image.png" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Manrope:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "TypeRacrer",
+      "url": "https://typeracer.gagankumar.me",
+      "description": "Competitive typing race platform — race against the clock, challenge friends in multiplayer, and climb global leaderboards.",
+      "applicationCategory": "Game",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Real-time typing races",
+        "Multiplayer rooms",
+        "Global leaderboards",
+        "Detailed typing stats",
+        "Anti-cheat system",
+        "Ranked matches with Elo ratings"
+      ]
+    }
+    </script>
+</head>
+
+<body>
+  <noscript>
+    <div
+      style="padding: 2rem; text-align: center; font-family: sans-serif; color: #d1d0c5; background: #25282f; min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+      <div>
+        <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">TypeRacrer requires JavaScript</h1>
+        <p style="color: #9ba3af;">Please enable JavaScript in your browser to use TypeRacrer.</p>
+      </div>
+    </div>
+  </noscript>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>

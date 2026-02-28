@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 import { HeroSection } from "../components/HeroSection";
 import { FeaturesGrid } from "../components/FeaturesGrid";
 import { HowItWorks } from "../components/HowItWorks";
@@ -5,6 +6,8 @@ import { StatsBar } from "../components/StatsBar";
 import { Footer } from "../components/Footer";
 
 export function LandingPage() {
+  useDocumentTitle("Competitive Typing Races");
+
   return (
     <div className="min-h-screen">
       {/* Navbar */}

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { signupSchema } from "@typeracrer/shared";
 import { signup } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/state/auth-store";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
 
@@ -66,6 +67,7 @@ function TypingAnimation() {
 }
 
 export function SignupPage() {
+  useDocumentTitle("Sign Up");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const setUser = useAuthStore((state) => state.setUser);

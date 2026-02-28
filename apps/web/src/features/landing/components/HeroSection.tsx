@@ -26,7 +26,7 @@ export function HeroSection() {
               Race smarter.
             </span>
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-base text-[#b8bfc9] sm:text-lg">
+          <p className="mx-auto mt-6 max-w-xl text-base text-[#d1d0c5]/80 sm:text-lg">
             Compete in real-time typing races, track your WPM, climb global
             leaderboards, and prove you're the fastest typist.
           </p>

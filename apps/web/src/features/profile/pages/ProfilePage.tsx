@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { profileUpdateSchema, type RaceMode } from "@typeracrer/shared";
 import { getMyProfile, getMyRaceStats, getMyTypingAttempts, updateMyProfile } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/state/auth-store";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 
 type ProfileForm = {
   displayName: string;
@@ -49,6 +50,7 @@ function StatBlock({ label, value, accent = false }: { label: string; value: str
 }
 
 export function ProfilePage() {
+  useDocumentTitle("Profile");
   const user = useAuthStore((s) => s.user);
 
   const [tab, setTab] = useState<SettingsTab>("profile");

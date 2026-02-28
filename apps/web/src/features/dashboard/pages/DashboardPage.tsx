@@ -4,6 +4,7 @@ import { areEquivalentTypingChars, computeTypingScore, isPresetTimedRaceMode, ti
 import { createTypingAttempt, getMyRaceStats, getMyTypingAttempts, getRaceText } from "@/lib/api/client";
 import { clampRaceDurationMs, parseDurationToMs } from "@/lib/utils/duration";
 import { buildPromptWindow } from "@/lib/utils/prompt-window";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 
 const timedOptions: Array<{ value: Extract<RaceMode, "timed_15" | "timed_30" | "timed_60" | "timed_120">; label: string }> = [
   { value: "timed_15", label: "15" },
@@ -42,6 +43,7 @@ function formatDate(isoDate: string): string {
 }
 
 export function DashboardPage() {
+  useDocumentTitle("Dashboard");
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const finishingRef = useRef(false);
@@ -372,6 +374,7 @@ export function DashboardPage() {
           disabled={status === "running" || textQuery.isFetching}
           className="rounded-md p-1 text-[#646669] transition-colors hover:text-[#d1d0c5] disabled:opacity-40"
           title="new text"
+          aria-label="Get new text"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
         </button>

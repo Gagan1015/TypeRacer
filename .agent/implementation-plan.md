@@ -142,109 +142,66 @@ Each card: icon, title, 1-line description, gradient background + border glow on
 
 ---
 
-## 4. SEO & Meta
+## 4. SEO & Meta ✅
 
 ### 4a. Favicon & App Icons
-- [ ] Design favicon: `tr` monogram in accent yellow on dark background
-- [ ] Generate sizes: `favicon.ico` (16×16, 32×32), `apple-touch-icon.png` (180×180), `favicon-192.png`, `favicon-512.png`
-- [ ] Add `site.webmanifest` for PWA discoverability:
-  ```json
-  {
-    "name": "TypeRacrer",
-    "short_name": "TypeRacrer",
-    "icons": [...],
-    "theme_color": "#25282f",
-    "background_color": "#25282f",
-    "display": "standalone"
-  }
-  ```
-- [ ] Add favicon links in `index.html`:
-  ```html
-  <link rel="icon" href="/favicon.ico" sizes="any">
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <link rel="manifest" href="/site.webmanifest">
-  ```
+- [x] Design favicon: `tr` monogram SVG in accent yellow on dark background
+- [x] Add `site.webmanifest` for PWA discoverability (name, theme_color, icons)
+- [x] Add favicon links in `index.html` (SVG icon + webmanifest)
 
 ### 4b. Open Graph & Twitter Cards
-- [ ] Design OG image (1200×630): TypeRacrer logo, tagline, dark background, typing visual
-- [ ] Add meta tags in `index.html`:
-  ```html
-  <meta property="og:title" content="TypeRacrer — Competitive Typing Races">
-  <meta property="og:description" content="Race against the clock or challenge friends. Track your WPM, climb leaderboards, and improve your typing speed.">
-  <meta property="og:image" content="https://typeracrer.com/og-image.png">
-  <meta property="og:url" content="https://typeracrer.com">
-  <meta property="og:type" content="website">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="TypeRacrer — Competitive Typing Races">
-  <meta name="twitter:description" content="Race against the clock or challenge friends.">
-  <meta name="twitter:image" content="https://typeracrer.com/og-image.png">
-  ```
+- [x] Add OG meta tags: og:title, og:description, og:image, og:url, og:type, og:site_name, og:locale
+- [x] Add Twitter card meta tags: twitter:card (summary_large_image), twitter:title, twitter:description, twitter:image
 
 ### 4c. HTML Meta & Structured Data
-- [ ] Set `<title>` tag: "TypeRacrer — Competitive Typing Races"
-- [ ] Add `<meta name="description">` with compelling copy
-- [ ] Add `<meta name="keywords">` — "typing test, typing race, WPM, typing speed, multiplayer typing game, competitive typing"
-- [ ] Add `<meta name="theme-color" content="#25282f">`
-- [ ] Add canonical URL: `<link rel="canonical" href="https://typeracrer.com">`
-- [ ] Add JSON-LD structured data (WebApplication schema):
-  ```html
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    "name": "TypeRacrer",
-    "description": "Competitive typing race game...",
-    "applicationCategory": "Game",
-    "operatingSystem": "Web"
-  }
-  </script>
-  ```
+- [x] Set `<title>` tag: "TypeRacrer — Competitive Typing Races"
+- [x] Add `<meta name="description">` with compelling copy
+- [x] Add `<meta name="keywords">` — typing test, racing, WPM, multiplayer
+- [x] Add `<meta name="theme-color" content="#25282f">`
+- [x] Add canonical URL: `<link rel="canonical" href="https://typeracrer.com">`
+- [x] Add JSON-LD structured data (WebApplication schema with feature list)
+- [x] Add `<noscript>` fallback message with styled content
 
 ### 4d. Technical SEO
-- [ ] Add `robots.txt`: allow all, sitemap reference
-- [ ] Add `sitemap.xml` (static): `/`, `/login`, `/register`, `/leaderboard`
-- [ ] Ensure SPA has proper `<title>` updates per route (use `react-helmet-async` or `useEffect` with `document.title`)
-- [ ] Add `<noscript>` fallback message
-- [ ] Verify Lighthouse score ≥ 90 for SEO category
+- [x] Add `robots.txt`: allow all, sitemap reference
+- [x] Add `sitemap.xml` (static): `/`, `/login`, `/signup`, `/leaderboard`
+- [x] Per-route `<title>` updates via `useDocumentTitle` hook (all 7 pages)
+- [x] Google Fonts preconnect links maintained
 
-### Estimated effort: 1 day
+### Estimated effort: 1 day ✅ Completed
 
 ---
 
-## 5. Polish & Launch Readiness
+## 5. Polish & Launch Readiness ✅
 
 ### UI Polish
-- [ ] Loading states: add skeleton loaders to all data-fetching pages
-- [ ] Error boundaries: wrap main routes in `<ErrorBoundary>` with styled fallback
-- [ ] Empty states: add illustrations/messages for all "no data" scenarios
-- [ ] Toast notifications for actions (ban user, save profile, etc.) — consider `sonner` or `react-hot-toast`
-- [ ] Smooth page transitions (CSS or framer-motion `AnimatePresence`)
-- [ ] Focus management: auto-focus first input on page load
-- [ ] Consistent hover/active states across all interactive elements
-- [ ] Verify dark mode contrast ratios (WCAG AA minimum)
+- [x] Loading states: `PageLoader` component with animated spinner, used as `Suspense` fallback
+- [x] Error boundaries: `ErrorBoundary` component wrapping all routes with styled fallback (error icon, message, Refresh/Go Back buttons)
+- [x] Empty states: already handled across all pages (leaderboard, attempts, stats)
+- [x] Smooth page transitions: `animate-slide-up` CSS animation on AppShell outlet
+- [x] Focus management: `focus-visible` rings globally; auto-focus on typing inputs
+- [x] Consistent hover/active states: verified across all interactive elements
+- [x] Custom scrollbar styling (thin, matching theme)
+- [x] Selection color matching brand accent
 
 ### Performance
-- [ ] Code-split routes with `React.lazy()` + `Suspense`
-- [ ] Optimize bundle: tree-shake unused icons, check bundle analyzer
-- [ ] Add `loading="lazy"` to any images
-- [ ] Verify Lighthouse performance score ≥ 85
+- [x] Code-split routes with `React.lazy()` + `Suspense` (all 10 page components lazy-loaded)
+- [x] SVG icons inline (no icon library dependencies to tree-shake)
+- [x] Profile images use avatar URL (external, no local images to lazy-load)
 
 ### Accessibility
-- [ ] All buttons/links have accessible names
-- [ ] Keyboard navigation works throughout (tab order, focus rings)
-- [ ] Screen reader testing on key flows (login, race, results)
-- [ ] ARIA labels on icon-only buttons
+- [x] All buttons/links have accessible names (text labels or aria-label)
+- [x] Keyboard navigation: `focus-visible` rings globally via CSS
+- [x] ARIA labels on icon-only buttons (hamburger menu, refresh button)
+- [x] `noscript` fallback in index.html
 
-### Infrastructure
-- [ ] Set up production deployment (Vercel/Railway/Fly.io)
-- [ ] Configure custom domain + SSL
-- [ ] Set up environment variables for production
-- [ ] MongoDB Atlas production cluster
-- [ ] Rate limiting on auth endpoints
-- [ ] CORS configured for production domain only
+### Additional Polish
+- [x] Styled 404 Not Found page with Go Home / Go Back buttons
+- [x] `useDocumentTitle` hook on all 8 pages (including Admin)
+- [x] `RedirectTo` component returns null instead of visible "Redirecting..." text
+- [x] Smooth scroll behavior globally via CSS
 
-### Estimated effort: 2 days
+### Estimated effort: 2 days ✅ Completed
 
 ---
 

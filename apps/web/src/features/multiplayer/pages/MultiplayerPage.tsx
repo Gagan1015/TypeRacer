@@ -13,6 +13,7 @@ import { createMultiplayerSocket } from "@/lib/socket/multiplayer-client";
 import { useAuthStore } from "@/lib/state/auth-store";
 import { clampRaceDurationMs, parseDurationToMs } from "@/lib/utils/duration";
 import { buildPromptWindow } from "@/lib/utils/prompt-window";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 
 type ConnectionState = "connecting" | "connected" | "disconnected";
 
@@ -117,6 +118,7 @@ function PlayerProgressBar({
 }
 
 export function MultiplayerPage() {
+  useDocumentTitle("Multiplayer");
   const socketRef = useRef<Socket | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const finishSentRef = useRef(false);

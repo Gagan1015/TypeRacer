@@ -174,7 +174,7 @@ export function AppShell() {
         </div>
       </div>
 
-      <main className="mt-6">
+      <main className="mt-6 animate-slide-up">
         <Outlet />
       </main>
     </div>

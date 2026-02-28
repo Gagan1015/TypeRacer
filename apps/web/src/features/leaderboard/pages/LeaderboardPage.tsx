@@ -10,6 +10,7 @@ import {
   getSeasonalTypingLeaderboard
 } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/state/auth-store";
+import { useDocumentTitle } from "@/lib/hooks/useDocumentTitle";
 
 type LeaderboardTab = "typing" | "ranked";
 type TypingScope = "global" | "seasonal";
@@ -148,6 +149,7 @@ function MatchHistoryRow({ match, userId }: { match: RankedMatchRecord; userId: 
 }
 
 export function LeaderboardPage() {
+  useDocumentTitle("Leaderboard");
   const user = useAuthStore((s) => s.user);
   const [tab, setTab] = useState<LeaderboardTab>("typing");
   const [typingScope, setTypingScope] = useState<TypingScope>("global");
